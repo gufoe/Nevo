@@ -14,10 +14,10 @@ After some time (less than a minute on fast simulation using a i5 processor) gen
 The graph on the lower side of the screen indicates fishes (blue) and food (green) number. In big-world simulation, when generations get very old, the graph resembles the Lotka-Volterra frequency plot of prey/predators (https://en.wikipedia.org/wiki/Lotka%E2%80%93Volterra_equations).
 
 ## Keys
-F to reduce the rendering frame rate, while increasing the update frame rate; this will cause lag, but everything will actually move faster.
-I to toggle information displaying over each fish (Age, Life, Food [eaten], Children).
-P to pause.
-D enables "debug" vision; currently it will only display every fish vision.
-B enable "bioma" view, which is useful to see how creatures are migrating through the world and how food is growing or consumed.
-Mouse wheel to zoom in or out.
+F to reduce the rendering frame rate, while increasing the update frame rate; this will cause lag, but everything will actually move faster.<br>
+I to toggle information displaying over each fish (Age, Life, Food [eaten], Children).<br>
+P to pause.<br>
+D enables "debug" vision; currently it will only display every fish vision.<br>
+B enable "bioma" view, which is useful to see how creatures are migrating through the world and how food is growing or consumed.<br>
+Mouse wheel to zoom in or out.<br>
 
