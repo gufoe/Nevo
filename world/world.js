@@ -3,8 +3,8 @@ var World = function() {
 	this.meals = [];
 	this.tree = [];
 	this.age = 0;
-	this.w = 10000;
-	this.h = 10000;
+	this.w = 7000;
+	this.h = 7000;
 	this.history = [];
 	this.lattice = {};
 	this.latticeGrid = {};
@@ -19,10 +19,10 @@ World.prototype.setup = function(n, m) {
 	this.history = {nevos:[], meals:[]};
 	this.tree = [];
 	//this.lattice = {};
-	
+
 	for(var i = 0; i < m; i++)
 		this.meals.push(new Meal(Math.random()*this.w, Math.random()*this.h));
-	
+
 	if(typeof n == "array") {
 		for(var i in n) {
 			console.log('push');
@@ -38,7 +38,7 @@ World.prototype.setup = function(n, m) {
 	}
 }
 World.prototype.latticize = function(objects) {
-	
+
 	var x, y;
 	for (var i in objects) {
 		x = parseInt(objects[i].pos.x/this.tileSize);
@@ -62,64 +62,64 @@ World.prototype.latticize = function(objects) {
 }
 World.prototype.update = function() {
 	this.age++;
-	
+
 	if (this.age%10 == 0) {
-		
+
 		for(var i in this.meals)
 			if(this.meals[i].fertile && Math.random() > .999) {
 				var m = new Meal(this.meals[i].pos.x+Math.random()*100-50, this.meals[i].pos.y+Math.random()*100-50);
 				this.meals.push(m);
 				this.meals[i].fertile = false;
 			}
-			
+
 		this.meals.push(new Meal(Math.random()*this.w, Math.random()*this.h));
 	}
-	
+
 	if (this.age%300 == 0) {
 		this.history.nevos.push(this.nevos.length);
 		this.history.meals.push(this.meals.length);
 	}
-	
+
 	this.latticize(this.nevos);
 	this.latticize(this.meals);
-	
-	
-	
+
+
+
 	var x, y, l = this.lattice;
 	this.latticeGrid = {};
 	var tot = 0;
 	for(var i in this.nevos) {
-	
+
 		var n = this.nevos[i];
-		
+
 		x = n.lat.x;
 		y = n.lat.y;
-		
+
 		if (!(x in this.latticeGrid)) {
 			this.latticeGrid[x] = {}
 		}
 		if (!(y in this.latticeGrid[x])) {
 			var obj = Object.values(l[x][y]);
-			
+
 			if (x-1 in l && y in l[x-1])
 				obj = obj.concat(Object.values(l[x-1][y]));
 			if (x-1 in l && y-1 in l[x-1])
 				obj = obj.concat(Object.values(l[x-1][y-1]));
 			if (x-1 in l && y+1 in l[x-1])
 				obj = obj.concat(Object.values(l[x-1][y+1]));
-				
+
 			if (x+1 in l && y in l[x+1])
 				obj = obj.concat(Object.values(l[x+1][y]));
 			if (x+1 in l && y-1 in l[x+1])
 				obj = obj.concat(Object.values(l[x+1][y-1]));
 			if (x+1 in l && y+1 in l[x+1])
 				obj = obj.concat(Object.values(l[x+1][y+1]));
-				
+
 			if (y+1 in l[x])
 				obj = obj.concat(Object.values(l[x][y+1]));
 			if (y-1 in l[x])
 				obj = obj.concat(Object.values(l[x][y-1]));
-				
+
 			this.latticeGrid[x][y] = obj;
 		}
 		tot+= this.latticeGrid[x][y].length-1;
@@ -129,19 +129,19 @@ World.prototype.update = function() {
 	if (this.age%10000 == 0) {
 		//console.log(tot);
 	}
-	
-	
+
+
 	for(var i in this.nevos) {
 		if(this.nevos[i].life <= 0)
 			this.remove(this.nevos[i]);
 	}
 }
 World.prototype.draw = function() {
-	
+
 	render.fillStyle = "#070605";
 	render.fillRect(0, 0, this.w, this.h);
-	
-	
+
+
 	if (drawBioma) {
 		for(var x in this.lattice)
 			for(var y in this.lattice[x]) {
@@ -174,7 +174,7 @@ World.prototype.draw = function() {
 				}
 			}
 	} else {
-			
+
 		for(var i in this.meals) {
 			var p = this.meals[i].pos;
 			if (p.x < startDraw.x || p.y < startDraw.y) {
@@ -185,7 +185,7 @@ World.prototype.draw = function() {
 			}
 			this.meals[i].draw();
 		}
-		
+
 		for(var i in this.nevos) {
 			var p = this.nevos[i].pos;
 			if (p.x < startDraw.x || p.y < startDraw.y) {

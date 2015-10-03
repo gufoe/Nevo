@@ -1,5 +1,5 @@
 var Synapse = function(src, dst) {
-    
+
     this.src = src;
     this.dst = dst;
     this.weight = Math.random()-.5;
@@ -8,8 +8,8 @@ var Synapse = function(src, dst) {
 }
 
 Synapse.prototype.output = function() {
-    
+
     // Return the input neuron output already weighted
     return this.src.output*this.weight;
-    
+
 }

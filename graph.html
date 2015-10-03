@@ -6,7 +6,7 @@
     <title>Tree Example</title>
 
     <style>
-	
+
 	.node {
 		cursor: pointer;
 	}
@@ -26,16 +26,16 @@
 	  stroke: #ccc;
 	  stroke-width: 2px;
 	}
-	
+
     </style>
 
   </head>
 
   <body>
 
-<!-- load the d3.js library -->	
+<!-- load the d3.js library -->
 <script src="d3.v3.min.js"></script>
-	
+
 <script>
 
 function adjust(t, p) {
@@ -62,7 +62,7 @@ adjust(treeData, 'null');
 var margin = {top: 0, right: 0, bottom: 0, left: 0},
 	width = 1300,
 	height = 4000;
-	
+
 var i = 0,
 	duration = 10,
 	root;
@@ -97,7 +97,7 @@ function zoom() {
 root = treeData[0];
 root.x0 = height / 2;
 root.y0 = 0;
-  
+
 update(root);
 
 d3.select(self.frameElement).style("height", "500px");
@@ -118,7 +118,7 @@ function update(source) {
   // Enter any new nodes at the parent's previous position.
   var nodeEnter = node.enter().append("g")
 	  .attr("class", "node")
-	  .attr("transform", function(d) { 
+	  .attr("transform", function(d) {
 	   return "translate(" + d.x + "," + d.y + ")"; })
 	  .on("click", click);
 
@@ -205,6 +205,6 @@ function click(d) {
 }
 
 </script>
-	
+
   </body>
 </html>

@@ -2,12 +2,12 @@ var Generation = function(population) {
 
 	// The generation age
 	this.age = 0;
-	
+
 	// Generation statistics
 	this.best = null;
 	this.average = 0;
 	this.total = 0;
-	
+
 	/**
 	 * The population to menage
 	 * Subjects MUST implement:
@@ -47,58 +47,58 @@ Generation.prototype.children = function() {
 
 	var pool = [],
 		keep = 3;
-	
+
 	// Fill the mating pool with 100 population
 	for(var i in this.population) {
 		var fitness = this.population[i].fitness();
-		
+
 		for(var j = 0; j < Math.pow(fitness+1, 1); j++)
 			pool.push(this.population[i]);
 	}
-	
-	
-	
+
+
+
 	var children = [];
-	
+
 	for(var i = 0; i < keep; i++) {
 		var genius = this.population[i];
 		children.push(genius.clone());
 	}
-	
+
 	// Generate the new generation
 	for(var i = 0; i < this.population.length-keep; i++) {
 		var dad, mom;
 		if(pool.length > 4) {
-			
+
 			dad = Math.random()*pool.length;
 			mom = Math.random()*pool.length;
-			
+
 			// Select the parents from the pool
 			dad = pool[Math.floor(dad)];
 			mom = pool[Math.floor(mom)];
-			
+
 		} else {
-			
+
 			dad = Math.random()*this.population.length;
 			mom = Math.random()*this.population.length;
-			
+
 			// Select the parents from the pool
 			dad = this.population[Math.floor(dad)];
 			mom = this.population[Math.floor(mom)];
-			
+
 		}
-		
-		
+
+
 		// Create a new subject
 		var child = dad.reproduce(mom);
-		
+
 		// Add the child to the new generation
 		children.push(child);
 	}
-	
+
 	// Return the new generation
 	return children;
-	
+
 }
 
 Generation.prototype.serialize = function() {

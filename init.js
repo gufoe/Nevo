@@ -28,58 +28,58 @@ var update = function() {
 	if(sync) {
 		draw();
 	}
-	
+
 	if (world.nevos.length == 0) {
 		generate();
 	}
 }
 
 var drawGraph = function(label, array, x, y, w, h, color, maxm) {
-	
+
 	if (maxm == null) {
 		maxm = 0;
-		
+
 		for(var i in array) {
 			if(array[i] > maxm)
 				maxm = array[i];
 		}
 	}
-	
+
 	render.beginPath();
 	for(var i in array)
 		render.lineTo(x+i*(w/(array.length-1)), y-array[i]/maxm*h);
 	render.strokeStyle = color;
 	render.stroke();
 	render.closePath();
-	
+
 	render.strokeStyle = color;
 	render.strokeRect(x, y-h, w, h);
-	
+
 	render.globalAlpha = .05;
 	render.fillStyle = color;
 	render.fillRect(x, y-h, w, h);
 	render.globalAlpha = 1;
-	
+
 	render.fillStyle = color;
 	render.fillText(label, x, y);
-	
+
 }
 
 var draw = function() {
-	
+
 	//follow = world.nevos[0];
 	//follow.highlight = '0, 255, 255';
-	
+
 	render.fillStyle = "#000";
 	render.fillRect(0, 0, canvas.width, canvas.height);
-	
-	
+
+
 	render.save();
 	render.scale(zoom, zoom);
 	if (world.nevos[0]) {
 		follow = world.nevos[0];
 	}
-	
+
 	if(follow != null) {
 		//render.rotate(Math.PI-follow.rot);
 		render.translate(canvas.width/2/zoom, canvas.height/2/zoom);
@@ -95,17 +95,17 @@ var draw = function() {
 		startDraw.x = -canvas.width/2/zoom +mouse.x/canvas.width*world.w;
 		startDraw.y = -canvas.height/2/zoom+mouse.y/canvas.height*world.h;
 	}
-	
+
 	world.draw();
-	
+
 	render.restore();
-	
+
 	if (follow != null)
 		drawSpectrum();
-	
+
 	render.font = '10pt monospace';
 	render.fillStyle = "#FFF";
-	
+
 	var legend = {
 		'Extintions':(chain.length == 0 ? 0 : chain[0].length),
 		'World age ':world.age,
@@ -125,8 +125,8 @@ var draw = function() {
 	for (var label in legend) {
 		render.fillText(label+': '+legend[label], 10, (i++)*20);
 	}
-	
-	
+
+
 	for(var i in species) {
 		if (world.age%300 == 0) {
 			species[i].update();
@@ -134,13 +134,13 @@ var draw = function() {
 		render.fillStyle = 'rgb('+species[i].color.join(',')+')';
 		//render.fillText("Best:  "+species[i].population[0].fitness(), 20, i*80+80);
 		//render.fillText("Total: "+species[i].total, 20, i*80+110);
-		
+
 		if (chain[i] == null)
 			chain[i] = [];
-		
+
 		//drawGraph("", chain[i], 130, i*80+120, 200, 60, 'rgb('+species[i].color.join(',')+')');
 	}
-	
+
 	drawGraph("", world.history.nevos, 50, canvas.height-10, canvas.width-100, 100, '#07f');
 	drawGraph("", world.history.meals, 50, canvas.height-10, canvas.width-100, 100, '#0f0');
 }
@@ -156,7 +156,7 @@ function drawSpectrum() {
 		for(var a in v) {
 			if (v[a] == null)
 				continue;
-			
+
 			render.fillStyle = 'rgba('+v[a].r+', '+v[a].g+', '+v[a].b+', '+Math.min(10, Math.exp(300/(100+v[a].dist)))/10+')';
 			render.fillRect(x+xoff+parseInt(a), (mem.length-t)*3, 1, 3);
 		}
@@ -170,28 +170,28 @@ window.onload = function() {
 	canvas = document.createElement('canvas');
 	canvas.id = 'nevo_canvas';
 	document.getElementById('canvas_box').appendChild(canvas);
-	
+
 	// Resize the canvas
 	window.onresize = function() {
 		canvas.width = document.getElementById('canvas_box').clientWidth;
 		canvas.height = document.getElementById('canvas_box').clientHeight;
 		render = canvas.getContext('2d');
-		
+
 		render.save();
 		render.fillStyle = "#000";
 		render.fillRect(0, 0, canvas.width, canvas.height);
 		render.restore();
 	}
-	
+
 	// Call the resize event
 	window.onresize();
-	
+
 	// Refresh mouse coords
 	window.onmousemove = function(e) {
 		mouse.x = e.pageX;
 		mouse.y = e.pageY;
 	}
-	
+
 	canvas.onmousewheel = function(e) {
 		var factor = 1.2;
 		if(e.wheelDeltaY > 0) {
@@ -204,24 +204,24 @@ window.onload = function() {
 			zoom+= (zoomFinal-zoom)/10;
 			if (Math.abs(zoomFinal-zoom) < 0.01)
 				clearInterval(zoomInt);
-			
+
 		}, 20);
 	}
-	
-	
-	
+
+
+
 	// Init the world
 	world = new World();
 	world.setup(80, 600);
 	createSpecies();
-	
-	
-	
+
+
+
 	// Start the update thread
 	setInterval(function() {
 		update();
 	}, 1000.0/fps.update);
-	
+
 	// Start the draw thread
 	if(!sync) {
 		setInterval(function() {
@@ -231,7 +231,7 @@ window.onload = function() {
 }
 
 function createSpecies() {
-	
+
 	var slice = world.nevos.length/species.length;
 	for(var i in species) {
 		var color = species[i].color == null ? species[i] : species[i].color;
@@ -239,39 +239,39 @@ function createSpecies() {
 		species[i] = new Generation(nevos);
 		species[i].color = color;
 	}
-	
+
 }
 
 
 var generate = function() {
-	
+
 	for(var i in species) {
 		species[i].update();
 		if (chain[i] == null)
 			chain[i] = [];
-			
+
 		chain[i].push(species[i].total);
 		if (chain[i].length > 100) {
 			chain[i].shift();
 		}
 	}
-	
-	
+
+
 	var children = [];
-	
-	for(var i in species) 
+
+	for(var i in species)
 		children = children.concat(species[i].children());
-	
+
 	world.setup(0, 0);
 	world.setNevos(children);
 	createSpecies();
-	
+
 }
 
 
 window.onkeydown = function(e) {
 	var key = String.fromCharCode(e.keyCode);
-	
+
 	switch(key) {
 		case 'G':
 			localStorage.setItem('tree', JSON.stringify(world.tree));
