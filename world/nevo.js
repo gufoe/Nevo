@@ -33,10 +33,11 @@ var Nevo = function(brain) {
 
 	// The brain
 	if(brain == null) {
-		this.brain = new NNetwork();
-		this.brain.add(new NLayer(this.viewAccuracy*2+6));
-		this.brain.add(new NLayer(6));
-		this.brain.add(new NLayer(3));
+		this.brain = new Brain([this.viewAccuracy*2+6, 5, 3, 3]);
+		//this.brain = new NNetwork();
+		//this.brain.add(new NLayer(this.viewAccuracy*2+6));
+		//this.brain.add(new NLayer(6));
+		//this.brain.add(new NLayer(3));
 	} else {
 		this.brain = brain;
 	}
@@ -121,17 +122,25 @@ Nevo.prototype.processView = function(view) {
 	for (var i in this.view) {
 
 		if (view[i] != null) {
-			var f = Math.pow(view[i].dist/100, 1);
+			//var f = Math.max(0, 255-view[i].dist);
 			/*
 			var diff = Math.pow((this.color[0]-view[i].r)/25,2)+
 					   Math.pow((this.color[1]-view[i].g)/25,2)+
 					   Math.pow((this.color[2]-view[i].b)/25,2);
 					   */
-			diff = this.color[0]-view[i].r;
-			inputs.push(f);
-			inputs.push(diff);
+			//diff = this.color[0]-view[i].r;
+			var f;
+			if (view[i].dist > 300)
+				f = 1;
+			else {
+				f = 300-view[i].dist;
+				f/= 30;
+				f = Math.pow(f, 2);
+			}
+			inputs.push(f * (view[i].r == 0 ? 1 : -1));
+			inputs.push(view[i].r == 0 ? 10 : -10);
 		} else {
-			inputs.push(10000);
+			inputs.push(0);
 			inputs.push(0);
 		}
 
@@ -167,9 +176,11 @@ Nevo.prototype.update = function(objects) {
 		inputs.push(this.angAcc/this.maxAngAcc);
 		inputs.push(this.life/this.maxLife);
 
-		if (this.brain.output != null) {
-			inputs = inputs.concat(this.brain.output);
+		if (this.brain.getOutputs() != null && this.brain.getOutputs().length == 3) {
+			//console.log(this.brain.getOutputs().length, this.brain.getOutputs());
+			inputs = inputs.concat(this.brain.getOutputs());
 		} else {
+			inputs.push(0);
 			inputs.push(0);
 			inputs.push(0);
 		}
@@ -178,9 +189,9 @@ Nevo.prototype.update = function(objects) {
 	}
 
 	//console.log(output);
-	this.angAcc = this.maxAngAcc*this.brain.output[0];
+	this.angAcc = this.maxAngAcc*this.brain.getOutputs()[0];
 
-	this.linAcc = this.maxLinAcc*this.brain.output[1];
+	this.linAcc = this.maxLinAcc*this.brain.getOutputs()[1];
 	if(this.follow != null) {
 		var delta = this.drift(this.follow);
 		this.angAcc = delta;
@@ -273,9 +284,9 @@ Nevo.prototype.see = function(objects) {
 
 			this.view[k] = {
 				'dist' : dist,
-				'r': m.color[0],
-				'g': m.color[1],
-				'b': m.color[2],
+				'r': parseInt(Math.max(0, 255-dist/1.0)),//m.color[0],
+				'g': 0,//Math.max(0, 255-dist/100.0),//m.color[1],
+				'b': 0,//m.color[2],
 				't': m.type
 			}
 		}
@@ -398,7 +409,7 @@ Nevo.prototype.fitness = function() {
 
 Nevo.prototype.reproduce = function(partner) {
 	// The child brain is derived from the parent's ones
-	var child = new Nevo(NNetwork.generate(this.brain, partner.brain));
+	var child = new Nevo(new Brain(this.brain, partner.brain, .04));
 	child.color = this.color.slice();
 
 	var c = parseInt(Math.random()*3);
@@ -423,8 +434,7 @@ Nevo.prototype.setColor = function(c) {
 }
 
 Nevo.prototype.clone = function() {
-	var child = new Nevo();
-	child.brain = this.brain.clone();
+	var child = new Nevo(this.brain.clone());
 	child.setColor(this.color);
 	child.addToTree(this.children);
 	return child;

@@ -212,7 +212,7 @@ window.onload = function() {
 
 	// Init the world
 	world = new World();
-	world.setup(80, 600);
+	world.setup(100, 2000);
 	createSpecies();
 
 
