@@ -48,3 +48,10 @@ Vec.prototype.angle = function(vec) {
 	var angle = Math.atan(vec.y/vec.x)+(vec.x < 0 ? Math.PI : 0)-(vec.y < 0 && vec.x < 0 ? Math.PI*2 : 0);
 	return angle;
 }
+
+Vec.prototype.rotate = function(a) {
+	var x = this.x, y = this.y;
+	this.x = x*Math.cos(a) - y*Math.sin(a);
+	this.y = x*Math.sin(a) + y*Math.cos(a);
+	return this;
+}

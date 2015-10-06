@@ -5,8 +5,10 @@ var Meal = function(x, y, energy) {
 	this.pos = new Vec(x, y);
 	this.energy = energy != null ? energy : 100;
 	this.fertile = true;
+	this.perlin = Math.random()*100000;
+	this.gen = 0;
 	//this.color = randColor();
-	var poison = parseInt(Math.random()*0);
+	var poison = 0;
 	this.color = [poison,255-poison,255-poison];
 
 	this.radius = parseInt(Math.sqrt(this.energy/10));

@@ -67,7 +67,12 @@ World.prototype.update = function() {
 
 		for(var i in this.meals)
 			if(this.meals[i].fertile && Math.random() > .999) {
-				var m = new Meal(this.meals[i].pos.x+Math.random()*100-50, this.meals[i].pos.y+Math.random()*100-50);
+				var dist = new Vec(4,0);
+				dist.rotate(Math.PI*noise.simplex2(this.meals[i].perlin+this.meals[i].gen/15.0, 0));
+				dist.mult(this.meals[i].radius);
+				var m = new Meal(this.meals[i].pos.x+dist.x, this.meals[i].pos.y+dist.y);
+				m.gen = this.meals[i].gen+1;
+				m.perlin = this.meals[i].perlin;
 				this.meals.push(m);
 				this.meals[i].fertile = false;
 			}
