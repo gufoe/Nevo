@@ -218,11 +218,6 @@ Nevo.prototype.update = function(objects) {
 
 	if (this.age > 1000 && Math.random() < 10/this.age) {
 
-		if (this.children.length == 0)
-			Neuron.MUTATION_RATE = 1;
-		else
-			Neuron.MUTATION_RATE = 10;
-
 		var child = this.reproduce(this);
 		child.gen = this.gen;
 		child.pos = this.pos.get();
@@ -409,7 +404,7 @@ Nevo.prototype.fitness = function() {
 
 Nevo.prototype.reproduce = function(partner) {
 	// The child brain is derived from the parent's ones
-	var child = new Nevo(new Brain(this.brain, partner.brain, .04));
+	var child = new Nevo(new Brain(this.brain, partner.brain, .07));
 	child.color = this.color.slice();
 
 	var c = parseInt(Math.random()*3);
