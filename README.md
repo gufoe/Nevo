@@ -2,7 +2,7 @@
 Virtual life simulation and evolution through Neural Networks and Genetic Algorithms.
 
 ## Demo
-Check out the demo at http://gufoe.tk/jack/nevo/alpha
+Check out the demo at http://gufoe.it/jack/nevo/alpha
 
 ## Description
 The world is firstly set up with random fishes (colored pentagons with inner triangle) and food (blue hexagons), the camera always follows the older fish, use the mouse wheel to zoom in/out.<br>
