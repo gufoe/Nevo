@@ -39,56 +39,24 @@
 				width: 100%;
 				height: 100%;
 			}
-			#sidebar {
-				float: left;
-				width: 20%;
-				height: 100%;
-				overflow-y: scroll;
-				background: #111;
-				color: #777;
-				display: none;
-			}
-			td {
-				border-style: none;
-				padding: 10px;
-			}
-			#history {
-				width: 100%;
-			}
-			#history * tr {
-				background: #000;
-				height: 40px;
-				border-bottom: 1px solid #222;
-			}
-			#history thead tr td {
-				text-align: center;
-			}
-			#history tbody tr td {
-				text-align: right;
-				padding-right: 5%;
-			}
-			#history tr .count {
-			}
-			#history tr .total {
+
+			#github-link {
+				position: absolute;
+				top: 15px;
+				right: 15px;
+				color: #fff;
+				font-family: monospace;
+				z-index: 1000;
+				text-decoration: none;
+				border-bottom: 1px solid #fff;
+				opacity: .8;
+				padding-bottom: 5px;
 			}
 		</style>
 
 	</head>
 	<body>
-		<div id="canvas_box">
-
-		</div>
-		<div id="sidebar">
-			<table id="history">
-				<thead>
-					<tr>
-						<td class="count">N</td>
-					</tr>
-				</thead>
-				<tbody>
-
-				</tbody>
-			</table>
-		</div>
+		<div id="canvas_box"></div>
+		<a href="https://github.com/gufoe/nevo" id="github-link">It's on Github!</a>
 	</body>
 </html>
