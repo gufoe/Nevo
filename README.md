@@ -18,5 +18,5 @@ F to reduce the rendering frame rate, while increasing the update frame rate; th
 I to toggle information displaying over each fish (Age, Life, Food [eaten], Children).<br>
 P to pause.<br>
 D enables "debug" vision; currently it will only display every fish vision.<br>
-B enable "biome" view, which is useful to see how creatures are migrating through the world and how food is growing or consumed.<br>
+A enable "auto follow" which follows the oldest nevo in the simulation<br>
 Mouse wheel to zoom in or out.<br>

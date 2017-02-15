@@ -1,4 +1,4 @@
-var Nevo = function(brain) {
+var Nevo = function(brains) {
 
 	this.type = 'n';
 	this.id = parseInt(Math.random()*1000);
@@ -12,35 +12,23 @@ var Nevo = function(brain) {
 	this.gen = null;
 	this.children = [];
 	this.lat = null;
+	this.shadowRadius = 100
 
-	// The number of sections the view is splitted in (max 360)
-	this.viewAccuracy = 30;
+	// Max number of visible objects (closer objects have priority)
+	this.viewAccuracy = 10;
 
-	// The view range
-	this.viewRange = Math.PI/4;
+	// For each object, the point
+	var outPrecision = 3
+	this.brains = brains ? brains : {
+		// This is used to understand each object, using distance, direction and poison
+		// object: new Brain([3, 4, outPrecision]),
 
+		// This is used to decide what action to take based on each seen object and other parameters (velocity, health etc.)
+		main: new Brain([this.viewAccuracy*outPrecision+3, 4, 3, 3]),
+	};
 
-	// The nevo view
-	this.view = {};
-	for(var i = -this.viewRange/Math.PI*180; i < this.viewRange/Math.PI*180; i+= this.viewRange/Math.PI*180*2/this.viewAccuracy) {
-		this.view[i] = null;
-	}
-
-	// The nevo memory
-	this.memory = [];
-	for(var i = 0; i < 0; i++)
-		this.memory.push({});
-
-	// The brain
-	if(brain == null) {
-		this.brain = new Brain([this.viewAccuracy*2+6, 5, 3, 3]);
-		//this.brain = new NNetwork();
-		//this.brain.add(new NLayer(this.viewAccuracy*2+6));
-		//this.brain.add(new NLayer(6));
-		//this.brain.add(new NLayer(3));
-	} else {
-		this.brain = brain;
-	}
+	// The max delta direction for consideration
+	this.viewRange = Math.PI/2;
 
 	// The fitness evaluation property
 	this.eaten = 0;
@@ -70,6 +58,9 @@ var Nevo = function(brain) {
 	// The creature color
 	this.color = [100,100,100];
 	this.highlight = null;
+
+	// Put me in the lattice
+	world.latticize(this)
 }
 
 Nevo.prototype.addToTree = function(tree) {
@@ -99,12 +90,13 @@ Nevo.prototype.eat = function(obj, force) {
 			return;
 		}
 	} else {
-		if(this.color[0] > obj.color[0]) {
-			this.life+= obj.energy;
+		var poison = obj.color[0]/255
+		if(poison<.5) {
+			this.life+= obj.energy
 			this.eaten++;
 			if (this.fitness() > world.bestFitness) world.bestFitness = this.fitness();
 		} else {
-			this.life-= obj.energy;
+			this.life-= obj.energy
 			this.eaten--;
 		}
 		world.remove(obj);
@@ -113,40 +105,83 @@ Nevo.prototype.eat = function(obj, force) {
 	this.life = Math.min(this.life, this.maxLife);
 }
 
-Nevo.prototype.processView = function(view) {
-	if (view == null) {
-		view = this.view;
+
+Nevo.prototype.think = function(objects) {
+	var inputs = [];
+
+	// Relative linear acceleration [-1, +1]
+	inputs.push(this.linAcc/this.maxLinAcc);
+
+	// Relative angular acceleration [-1, +1]
+	inputs.push(this.angAcc/this.maxAngAcc);
+
+	// Relative life [0, 1]
+	inputs.push(this.life/this.maxLife);
+
+	// Elaborate every point
+	var max_dist = 200
+	var view = []
+	// Filter objects not in view
+	for (var i = 0; i < objects.length; i++) {
+		var obj = objects[i]
+		if (obj == this) continue
+		if (obj.type != 'm') continue
+
+		// Get distance
+		obj.tmp_dist = this.pos.dist(obj.pos)
+		// Filter by distance
+		if (obj.tmp_dist > max_dist) continue
+		// Eat close meals
+		if (obj.type == 'm' && obj.tmp_dist < obj.radius+this.radius) {
+			this.eat(obj)
+			continue
+		}
+		// Get angle
+		obj.tmp_angle = Angle.norm(Angle.drift(this.pos, obj.pos)-this.rot)
+		// Filter by angle
+		if (Math.abs(obj.tmp_angle) > this.viewRange) continue
+		// Save valid objects
+		var inserted = false
+		for (var j = 0; j < view.length; j++) {
+			if (obj.tmp_dist < view[j].tmp_dist) {
+				view.splice(j, 0, obj)
+				inserted = true
+				break
+			}
+		}
+		if (!inserted) {
+			view.push(obj)
+		}
 	}
 
-	var inputs = [];
-	for (var i in this.view) {
+	// console.log(this.pos, parseInt(this.rot/Math.PI*180))
 
-		if (view[i] != null) {
-			//var f = Math.max(0, 255-view[i].dist);
-			/*
-			var diff = Math.pow((this.color[0]-view[i].r)/25,2)+
-					   Math.pow((this.color[1]-view[i].g)/25,2)+
-					   Math.pow((this.color[2]-view[i].b)/25,2);
-					   */
-			//diff = this.color[0]-view[i].r;
-			var f;
-			if (view[i].dist > 300)
-				f = 1;
-			else {
-				f = 300-view[i].dist;
-				f/= 30;
-				f = Math.pow(f, 2);
-			}
-			inputs.push(f * (view[i].r == 0 ? 1 : -1));
-			inputs.push(view[i].r == 0 ? 10 : -10);
-		} else {
-			inputs.push(0);
-			inputs.push(0);
+	var empty = [0,0,0]
+	for (var i = 0; i < this.viewAccuracy; i++) {
+		var obj = view[i]
+		var out = empty
+
+		// Filter by object
+		if (obj) {
+			var dist = obj.tmp_dist
+			var angle = obj.tmp_angle
+
+			// Object is valid
+			// console.log(i, parseInt(dist), parseInt(angle/Math.PI*180))
+			var out = [
+				// Distance [0, 1] bigger is closer
+				1-dist/max_dist,
+				// Relative angle [-PI, +PI]
+				angle,
+
+				obj.color[0]/255
+			]
 		}
 
+		inputs = inputs.concat(out)
 	}
 
-	return inputs;
+	return this.brains.main.process(inputs)
 }
 
 Nevo.prototype.update = function(objects) {
@@ -160,38 +195,17 @@ Nevo.prototype.update = function(objects) {
 		this.radius+= 0.5;
 	}
 
-
-	if (this.age%6 == 0) {
-		this.see(objects);
-
-		var inputs = [];
-		/*
-		for(var i in this.memory) {
-			var proc = this.processView(this.memory[i]);
-			inputs = inputs.concat(proc);
-		}
-		*/
-		inputs = inputs.concat(this.processView());
-		inputs.push(this.linAcc/this.maxLinAcc);
-		inputs.push(this.angAcc/this.maxAngAcc);
-		inputs.push(this.life/this.maxLife);
-
-		if (this.brain.getOutputs() != null && this.brain.getOutputs().length == 3) {
-			//console.log(this.brain.getOutputs().length, this.brain.getOutputs());
-			inputs = inputs.concat(this.brain.getOutputs());
-		} else {
-			inputs.push(0);
-			inputs.push(0);
-			inputs.push(0);
-		}
-		//console.log(inputs);
-		this.brain.process(inputs);
+	// Only elaborate inputs every X frames (for performance)
+	if (this.age%4 == 0) {
+		this.think(objects)
 	}
 
-	//console.log(output);
-	this.angAcc = this.maxAngAcc*this.brain.getOutputs()[0];
+	var thought = this.brains.main.getOutputs()
+	// console.log(thought)
 
-	this.linAcc = this.maxLinAcc*this.brain.getOutputs()[1];
+	this.angAcc = this.maxAngAcc*thought[0];
+
+	this.linAcc = this.maxLinAcc*thought[1];
 	if(this.follow != null) {
 		var delta = this.drift(this.follow);
 		this.angAcc = delta;
@@ -211,6 +225,8 @@ Nevo.prototype.update = function(objects) {
 
 	this.pos.x-= this.linVel*Math.sin(this.rot);
 	this.pos.y+= this.linVel*Math.cos(this.rot);
+	// Update the lattice
+	world.latticize(this)
 
 	this.linAcc = this.angAcc = 0;
 	this.linVel*= .96;
@@ -224,76 +240,11 @@ Nevo.prototype.update = function(objects) {
 		child.pos.x+= Math.random()*40-20;
 		child.pos.y+= Math.random()*40-20;
 		world.nevos.push(child);
-		world.latticize([child]);
+		world.latticize(child);
 		if(this.gen.population.length>60)
-			this.gen.population.pop(0);
+			this.gen.population.splice(0, 1);
 		this.gen.population.push(child);
 	}
-}
-
-Nevo.prototype.see = function(objects) {
-
-	for (var i in this.view) {
-		this.view[i] = null;
-	}
-
-	for(i in objects) {
-		if(objects[i] == this)
-			continue;
-
-		var m = objects[i];
-		var dist = this.pos.dist(m.pos);
-		var rad = m.radius;
-		if(dist < rad+this.radius) {
-			this.eat(m);
-			continue;
-		}
-
-		if(dist > 400)
-			continue;
-
-		var d = Angle.drift(this.pos, m.pos);
-
-		var left = new Vec(m.pos.x+rad*Math.cos(d), m.pos.y+rad*Math.sin(d));
-		var right = new Vec(m.pos.x-rad*Math.cos(d), m.pos.y-rad*Math.sin(d));
-		left = this.drift(left);
-		right = this.drift(right);
-
-		if (right < -this.viewRange || left > this.viewRange)
-			continue;
-
-		left = Math.max(left, -this.viewRange);
-		right = Math.min(right, this.viewRange);
-
-
-		//console.log(Math.round(left/Math.PI*180)+" - "+Math.round(right/Math.PI*180));
-
-		for(var j = left/Math.PI*180; j < right/Math.PI*180; j+= 1) {
-			var k = parseInt(j);
-
-			if (!(k in this.view))
-				continue;
-
-			if(this.view[k] != null && this.view[k].dist < dist)
-				continue;
-
-			this.view[k] = {
-				'dist' : dist,
-				'r': parseInt(Math.max(0, 255-dist/1.0)),//m.color[0],
-				'g': 0,//Math.max(0, 255-dist/100.0),//m.color[1],
-				'b': 0,//m.color[2],
-				't': m.type
-			}
-		}
-
-	}
-
-	var view = {};
-	for(var i in this.view)
-		view[i] = this.view[i];
-	this.memory.push(view);
-	this.memory.shift();
-
 }
 
 Nevo.prototype.draw = function() {
@@ -325,7 +276,6 @@ Nevo.prototype.draw = function() {
 
 	render.rotate(this.rot+Math.PI/2);
 
-
 	this.radius-= 1;
 	render.beginPath();
 	render.moveTo(this.radius*Math.cos(Math.PI/2.5*0),
@@ -338,7 +288,6 @@ Nevo.prototype.draw = function() {
 				  this.radius*Math.sin(Math.PI/2.5*0));
 	render.closePath();
 	this.radius+= 1;
-
 	render.strokeStyle = 'rgba('+this.color.join(',')+",0.8)";
 	render.stroke();
 	render.fillStyle = 'rgba('+this.color.join(',')+","+Math.pow(Math.cos(Math.pow(this.life/this.maxLife*Math.PI*1000, .4)*5), 2)+")";
@@ -364,32 +313,6 @@ Nevo.prototype.draw = function() {
 	render.stroke();
 	render.fillStyle = 'rgba('+this.color.join(',')+",0.2)";
 	render.fill();
-
-
-	if(!fullDraw)
-		return;
-	for(i in this.view) {
-
-		if (this.view[i] == null)
-			continue;
-
-		render.save();
-		render.beginPath();
-		render.moveTo(this.pos.x, this.pos.y);
-		render.lineTo(
-			this.pos.x+
-			this.view[i].dist*Math.cos(this.rot+Math.PI/2+i/180*Math.PI),
-
-			this.pos.y+
-			this.view[i].dist*Math.sin(this.rot+Math.PI/2+i/180*Math.PI)
-		);
-		render.closePath();
-		render.strokeStyle = 'rgba('+this.view[i].r+', '+this.view[i].g+', '+this.view[i].b+',1)';
-		render.stroke();
-		render.restore();
-	}
-
-
 }
 
 Nevo.prototype.drift = function(vec) {
@@ -404,12 +327,16 @@ Nevo.prototype.fitness = function() {
 
 Nevo.prototype.reproduce = function(partner) {
 	// The child brain is derived from the parent's ones
-	var child = new Nevo(new Brain(this.brain, partner.brain, .07));
+	var brains = {}
+	for (var i in this.brains)
+		brains[i] = new Brain(this.brains[i], partner.brains[i], .07);
+
+	var child = new Nevo(brains);
 	child.color = this.color.slice();
 
 	var c = parseInt(Math.random()*3);
 	child.color[c] = parseInt(child.color[c]);
-	child.color[c]+= parseInt(Math.random()*90-45);
+	child.color[c]+= parseInt(Math.random()*130-65);
 	child.color[c] = Math.min(child.color[c], 255);
 	child.color[c] = Math.max(child.color[c], 20);
 	//console.log(child.highlight);
@@ -429,7 +356,10 @@ Nevo.prototype.setColor = function(c) {
 }
 
 Nevo.prototype.clone = function() {
-	var child = new Nevo(this.brain.clone());
+	var brains = {};
+	for (var i in this.brains)
+		brains[i] = this.brains[i].clone();
+	var child = new Nevo(brains);
 	child.setColor(this.color);
 	child.addToTree(this.children);
 	return child;

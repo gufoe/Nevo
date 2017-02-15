@@ -9,7 +9,7 @@ var canvas = false,
 	paused = false,
 	startDraw,
 	showInfo = true,
-	drawBioma = false,
+	autoFollow = true,
 	drawHelp = true,
 	fullDraw = false,
 	fastMode = false,
@@ -70,15 +70,15 @@ var draw = function() {
 	//follow = world.nevos[0];
 	//follow.highlight = '0, 255, 255';
 
-	render.fillStyle = "#000";
-	render.fillRect(0, 0, canvas.width, canvas.height);
+	// render.fillStyle = "#000";
+	render.clearRect(0, 0, canvas.width, canvas.height);
 
 
 	render.save();
 	render.scale(zoom, zoom);
-	if (world.nevos[0]) {
-		follow = world.nevos[0];
-	}
+	// if (world.nevos[0]) {
+	// 	follow = world.nevos[0];
+	// }
 
 	if(follow != null) {
 		//render.rotate(Math.PI-follow.rot);
@@ -100,9 +100,6 @@ var draw = function() {
 
 	render.restore();
 
-	if (follow != null)
-		drawSpectrum();
-
 	render.font = '10pt monospace';
 	render.fillStyle = "#FFF";
 
@@ -110,16 +107,17 @@ var draw = function() {
 		'Extintions':(chain.length == 0 ? 0 : chain[0].length),
 		'World age ':world.age,
 		'World best':world.bestFitness,
-		'Food ':world.meals.length,
+		'Food':world.meals.length,
 		'Nevos':world.nevos.length,
+		'Visible objects':world.draws,
 		'[H] Help':drawHelp?'on':'off'
 	}
 	if (drawHelp) {
-		legend['[I] Show info '] = showInfo?'on':'off';
-		legend['[P] Paused    '] = paused?'on':'off';
-		legend['[F] Fast mode '] = fastMode?'on':'off';
-		legend['[D] Debug mode'] = fullDraw?'on':'off';
-		legend['[B] Bioma mode'] = drawBioma?'on':'off';
+		legend['[I] Show info  '] = showInfo?'on':'off';
+		legend['[P] Paused     '] = paused?'on':'off';
+		legend['[F] Fast mode  '] = fastMode?'on':'off';
+		legend['[D] Debug mode '] = fullDraw?'on':'off';
+		legend['[A] Auto follow'] = autoFollow?'on':'off';
 	}
 	var i = 1;
 	for (var label in legend) {
@@ -145,24 +143,6 @@ var draw = function() {
 	drawGraph("", world.history.meals, 50, canvas.height-10, canvas.width-100, 100, '#0f0');
 }
 
-function drawSpectrum() {
-	var mem = follow.memory;
-	render.strokeStyle = '#fff';
-	var xoff = follow.viewRange/Math.PI*180;
-	var x = canvas.width/2-xoff;
-	render.strokeRect(x, 0, xoff*2, mem.length*3+3);
-	for(var t in mem) {
-		var v = mem[t];
-		for(var a in v) {
-			if (v[a] == null)
-				continue;
-
-			render.fillStyle = 'rgba('+v[a].r+', '+v[a].g+', '+v[a].b+', '+Math.min(10, Math.exp(300/(100+v[a].dist)))/10+')';
-			render.fillRect(x+xoff+parseInt(a), (mem.length-t)*3, 1, 3);
-		}
-	}
-}
-
 window.onload = function() {
 	startDraw = new Vec();
 
@@ -178,8 +158,7 @@ window.onload = function() {
 		render = canvas.getContext('2d');
 
 		render.save();
-		render.fillStyle = "#000";
-		render.fillRect(0, 0, canvas.width, canvas.height);
+		render.clearRect(0, 0, canvas.width, canvas.height);
 		render.restore();
 	}
 
@@ -212,7 +191,7 @@ window.onload = function() {
 
 	// Init the world
 	world = new World();
-	world.setup(100, 2000);
+	world.setup(50, 30000);
 	createSpecies();
 
 
@@ -240,6 +219,16 @@ function createSpecies() {
 		species[i].color = color;
 	}
 
+}
+
+function inWindow(x, y, radius) {
+	if (x+radius < startDraw.x || y+radius < startDraw.y) {
+		return false
+	}
+	if (x-radius > startDraw.x+canvas.width/zoom || y-radius > startDraw.y+canvas.height/zoom) {
+		return false
+	}
+	return true
 }
 
 
@@ -284,8 +273,8 @@ window.onkeydown = function(e) {
 		case 'F':
 			fastMode = !fastMode;
 		break;
-		case 'B':
-			drawBioma = !drawBioma;
+		case 'A':
+			autoFollow = !autoFollow;
 		break;
 		case 'H':
 			drawHelp = !drawHelp;

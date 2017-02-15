@@ -46,7 +46,7 @@ Generation.prototype.update = function() {
 Generation.prototype.children = function() {
 
 	var pool = [],
-		keep = 3;
+		keep = Math.min(this.population.length/10, this.population.length);
 
 	// Fill the mating pool with 100 population
 	for(var i in this.population) {

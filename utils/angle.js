@@ -1,8 +1,8 @@
 var Angle = {
 	norm : function(a) {
-		if(a > Math.PI)
+		while(a > Math.PI)
 		  a-= Math.PI*2;
-		else if(a < -Math.PI)
+		while(a <= -Math.PI)
 		  a+= Math.PI*2;
 		return a;
 	},

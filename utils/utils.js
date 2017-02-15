@@ -35,3 +35,8 @@ Object.values = function (obj) {
     }
     return vals;
 }
+
+
+var clone = (obj) => {
+    return JSON.parse(JSON.stringify(obj))
+}
