@@ -22,7 +22,7 @@ var canvas = false,
 
 var update = function() {
 	if (!paused) {
-		for(var i = 0; i < (fastMode?100:1); i++)
+		for(var i = 0; i < (fastMode?50:1); i++)
 			world.update();
 	}
 	if(sync) {
@@ -191,7 +191,7 @@ window.onload = function() {
 
 	// Init the world
 	world = new World();
-	world.setup(50, 30000);
+	world.setup(50);
 	createSpecies();
 
 
@@ -251,7 +251,8 @@ var generate = function() {
 	for(var i in species)
 		children = children.concat(species[i].children());
 
-	world.setup(0, 0);
+	world = new World();
+	world.setup();
 	world.setNevos(children);
 	createSpecies();
 

@@ -1,192 +1,242 @@
+function shuffle(array) {
+    var currentIndex = array.length, temporaryValue, randomIndex;
 
-(function() {
-    var _recurrent = false
-        /**
-         * Constructor A:
-         * @param structure (ex. [4, 3, 2] 4 neurons in the input layer, 3 in the hidden layer and 2 in the output layer)
-         *
-         * Contructor B:
-         * @param Brain net0
-         * @param Brain net1
-         * @param float mutation rate (0 = 0;, 1 = 100%)
-         *
-         * Examples:
-         * to generate a new net, use: new Brain([4, 3, 2])
-         * to clone a net, use: new Brain(net.to.clone, net.to.clone, 0)
-         *
-         */
-    var Brain = this.Brain = function(a, b, mrate) {
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
 
-        // The mutation rate, will be set later
-        this.mrate = mrate ? mrate : 0;
-        this.id = parseInt(Math.random() * 100000)
-        this.network
-        this.outputs
-        this.inputs
-        this.struct
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
 
-        // Create the net from the struct
-        this.createFromStruct = (struct) => {
-            this.struct = struct
-            this.network = zArray(struct.length - 1)
-            this.outputs = zArray(this.network.length)
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+    }
 
-            for (var l = 0; l < struct.length - 1; l++) {
-                this.network[l] = zArray(struct[l + 1])
-                this.outputs[l] = zArray(this.network[l].length)
-                var syn = struct[l] + 1 // Precedent neurons + bias
+    return array;
+}
 
-                // Following neurons
-                if (_recurrent)
-                    syn += l < struct.length - 2 ? struct[l + 2] : 0
+function pick(array) {
+    var i = Math.floor(Math.random()*array.length)
+    return array[i]
+}
+function rand(v) {
+    return Math.random()*v
+}
 
-                for (var n = 0; n < this.network[l].length; n++) {
-                    this.network[l][n] = zArray(syn)
-                    this.outputs[l][n] = 1
-                    for (var w = 0; w < syn; w++) {
-                        this.network[l][n][w] = Brain.genWeight(1)
-                    }
-                }
-            }
-        }
+function randInt(v) {
+    return parseInt(rand(v))
+}
 
-        // Create the net from parents
-        this.createFromParents = (net0, net1, intensity) => {
+function clone(obj) {
+    return JSON.parse(JSON.stringify(obj))
+}
 
 
-            if (intensity == null) {
-                intensity = 1
-            }
+var Net = function(net) {
 
-            var d = net0.network
-            var m = net1.network
-            var src
+    // Definition of the nodes
+    this.nodes = net ? clone(net.nodes) : {}
+    // Inputs of each node
+    this.archs = net ? clone(net.archs) : {}
 
-            this.network = zArray(net0.network.length)
-            this.outputs = zArray(net0.network.length)
-            this.struct = []
-
-            // Check brains are equal
-            for (var i in net0.struct) {
-                if (net0.struct[i] == net1.struct[i]) {
-                    this.struct[i] = net0.struct[i]
-                } else {
-                    throw 'Brains are not compatible'
-                }
-            }
-
-
-            for (var l = 0; l < this.network.length; l++) {
-                this.network[l] = zArray(d[l].length)
-                this.outputs[l] = zArray(this.network[l].length)
-
-                for (var n = 0; n < this.network[l].length; n++) {
-
-                    this.network[l][n] = zArray(d[l][n].length)
-
-                    var src = Math.random() < .5 ? d[l][n] : m[l][n]
-
-                    for (var w = 0; w < this.network[l][n].length; w++) {
-                        this.network[l][n][w] = src[w]
-                        if (Math.random() < this.mrate) {
-                            this.network[l][n][w] += Brain.genWeight(intensity)
-                        }
-                    }
-                }
-            }
-        }
-
-        // This is used to calculate the network outputs
-        this.process = (inp) => {
-            this.inputs = inp
-            if (inp.length != this.struct[0])
-                throw 'Expected ' + this.struct[0] + ' inputs, got ' + inp.length
-
-            for (var l = 0; l < this.network.length; l++) {
-                if (l > 0)
-                    inp = this.outputs[l - 1]
-
-                for (var n = 0; n < this.network[l].length; n++) {
-                    this.outputs[l][n] = 0;
-                    for (var w = 0; w < inp.length; w++) {
-                        this.outputs[l][n] += inp[w] * this.network[l][n][w]
-                    }
-
-                    this.outputs[l][n] += this.network[l][n][w]
-
-                    if (_recurrent) {
-                        for (var w = 0; l < this.network.length - 1 && w < this.outputs[l + 1].length; w++) {
-                            this.outputs[l][n] += this.outputs[l + 1][w] * this.network[l][n][inp.length + 1 + w]
-                        }
-                    }
-
-                    this.outputs[l][n] = this.activate(this.outputs[l][n])
-                }
-
-            }
-
-            return this.outputs[this.outputs.length - 1]
-        }
-
-        // Get the last outputs
-        this.getOutputs = () => {
-            return this.outputs[this.outputs.length - 1]
-        }
-
-        // The activation function
-        this.activate = (x) => {
-            //return Math.sin(x*10.0);
-            if(x > 40)
-                return 1;
-            if(x < -40)
-                return -1;
-
-            return 2.0/(1 + Math.exp(-x))-1;
-        }
-
-        // Clone a net
-        this.clone = (mrate) => {
-            return new Brain(this, this, mrate)
-        }
-
-        // Get the number of inputs
-        this.inputs = () => {
-            return this.network[0][0].length - 1
-        }
-
-        if (b == null) {
-
-            // Generate a new net
-            if (a != null) {
-                this.createFromStruct(a)
-            }
-
-        } else {
-
-            // Generate a new net given its parents
-            this.createFromParents(a, b, 2)
+    // Clear recurrent network
+    this.reset = () => {
+        for (var i in this.nodes) {
+            delete(this.nodes[i].val)
         }
     }
 
-    // Unserialize the net
-    Brain.unserialize = (data) => {
-        var net = new Brain()
-        net.outputs = []
-        net.inputs = []
-        net.network = clone(data.network)
-        net.struct = data.struct
-        for (var i = 1; i < net.struct.length; i++) {
-            net.outputs.push(zArray(data.struct[i]))
+    // Measure net complexity
+    this.complexity = () => {
+        var c = Object.keys(this.nodes).length
+        for (var i in this.archs)
+            c+= Object.keys(this.archs[i]).length
+        return c
+    }
+
+    // Mutations can be of the following:
+    // 1 - new node (implies 2, otherwise the node would be useless)
+    // 2 - new synapse for given node
+    // 3 - change node bias
+    // 4 - change synapse weight
+    // 5 - remove synapse from node
+    // 6 - remove node (and related synapses)
+    this.mutate = () => {
+        // First remove empty archs
+        // for (var i in this.archs) {
+        //     if (!Object.keys(this.archs[i]).length) {
+        //         delete(this.archs[i])
+        //     }
+        // }
+
+        // TODO: change based on complexity
+        while (true) {
+            var m = pick(Object.keys(Net.mutations))
+            if (Net.mutations[m].call(this)) {
+                // console.log('mutazione', m)
+                break
+            }
         }
-        return net;
+        return this
     }
 
-    Brain.genWeight = (factor) => {
-        return 10 * (factor ? factor : 1) * (1 - Math.random() * 2)
+    this.set = (node, value) => {
+        var n = this.nodes[node]
+
+        if (!n) {
+            n = this.nodes[node] = { act: 'id', mrate: 0 }
+            // this.nodes['post-'+node] = { act: 'id', mrate: 1 }
+            // this.archs['post-'+node] = {}
+            // this.archs['post-'+node][node] = Net.randWeight()
+        }
+
+        n.bias = value
     }
 
-    function zArray(n) {
-        return Array.apply(null, Array(n)).map(Number.prototype.valueOf, 0)
+    this.val = (node) => {
+        var n = this.nodes[node]
+
+        if (!n) {
+            n = this.nodes[node] = { act: 'id', mrate: 1 }
+        }
+
+        // Init values
+        n.val = n.val ? n.val : 0
+        n.bias = n.bias ? n.bias : 0
+
+        // If node is processing, return last value
+        if (n.processing) return n.val
+
+        // Set processing to true
+        n.processing = true
+
+        // Get node value
+        var v = n.bias
+
+        // Sum inputs
+        for (var i in this.archs[node]) {
+            v+= this.val(i) * this.archs[node][i]
+        }
+
+        // Unset processing
+        delete(n.processing)
+
+        // Activate value
+        n.val = Net.funs[n.act](v)
+        return n.val
     }
 
-}).call(this)
+    this.lock = (id, mrate) => {
+        var n = this.nodes[id]
+        if (n.locking) return
+        n.locking = true
+        n.mrate = mrate
+
+        // Lock inputs
+        for (var i in this.archs[id]) {
+            // console.log('locking', i)
+            this.mrate(this.archs[id][i], mrate)
+        }
+    }
+}
+
+
+Net.randWeight = () => {
+    return 1-2*Math.random()
+}
+
+Net.uid = () => {
+    return Math.floor((1 + Math.random()) * 0x100000)
+      .toString(16)
+      .substring(1);
+}
+
+Net.mutations = {
+    newSynapse(src, dst) {
+        src = src ? src : pick(Object.keys(this.nodes))
+        dst = dst ? dst : pick(Object.keys(this.nodes))
+        if (!(dst in this.archs)) this.archs[dst] = {}
+        if (this.nodes[dst].mrate <= Math.random()) return false
+        this.archs[dst][src] = Net.randWeight()
+        // console.log('newSynapse', src, dst)
+        return true
+    },
+    newNode() {
+        if (Math.random() < .6) return false
+        var id = Net.uid()
+        this.nodes[id] = {
+            act: Net.randFun(),
+            bias: Net.randWeight(),
+            mrate: 1,
+        }
+        // console.log('newNode', id)
+        while (!Net.mutations.newSynapse.call(this, null, id));
+        return true
+    },
+    mutateBias() {
+        var id = pick(Object.keys(this.nodes))
+        if (!id) return false
+        if (this.nodes[id].mrate <= Math.random()) return false
+        this.nodes[id].bias+= Net.randWeight()
+        return true
+    },
+    mutateWeight() {
+        var dst = pick(Object.keys(this.archs))
+        if (!dst) return false
+        var src = pick(Object.keys(this.archs[dst]))
+        if (!src) return false
+
+        if (this.nodes[dst].mrate <= Math.random()) return false
+
+        this.archs[dst][src].weight+= Net.randWeight()
+        return true
+    },
+    mutateActivation() {
+        var id = pick(Object.keys(this.nodes))
+        if (!id) return false
+        if (this.nodes[id].mrate <= Math.random()) return false
+        this.nodes[id].act = Net.randFun()
+        return true
+    },
+    removeSynapse() {
+        var dst = pick(Object.keys(this.archs))
+        if (!dst) return false
+        if (this.nodes[dst].mrate <= Math.random()) return false
+        var src = pick(Object.keys(this.archs[dst]))
+        if (!src) return false
+        // console.log('removeSynapse', src, dst)
+        return delete(this.archs[dst][src])
+    },
+    removeNode() {
+        if (Math.random() < .6) return false
+        var id = pick(Object.keys(this.nodes))
+        if (!id || id.length == 1) return false
+        if (this.nodes[id].mrate <= Math.random()) return false
+        delete(this.nodes[id])
+        delete(this.archs[id])
+        // console.log('removeNode', id)
+        for (var i in this.archs) {
+            delete(this.archs[i][id])
+        }
+        return true
+    },
+}
+
+Net.funs = {
+    sig: x => 1/(1+Math.exp(-x)),
+    sq: x => x > 0 ? 1 : 0,
+    id: x => x,
+    neg: x => -x,
+    log: x => Math.log(Math.abs(x)),
+    abs: x => Math.abs(x),
+    exp: x => Math.exp(x),
+}
+
+Net.active_funs = Object.keys(Net.funs)
+
+Net.randFun = () => {
+    var keys = Net.active_funs
+    return pick(keys)
+}

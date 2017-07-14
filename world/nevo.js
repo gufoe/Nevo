@@ -21,10 +21,24 @@ var Nevo = function(brains) {
 	var outPrecision = 3
 	this.brains = brains ? brains : {
 		// This is used to understand each object, using distance, direction and poison
-		// object: new Brain([3, 4, outPrecision]),
+		// object: new Net(),
 
 		// This is used to decide what action to take based on each seen object and other parameters (velocity, health etc.)
-		main: new Brain([this.viewAccuracy*outPrecision+3, 4, 3, 3]),
+		main: new Net(null, {
+			nodes: {
+				y2: { bias: 2, act: 'id' },
+				y1: { bias: 0, act: 'id' },
+				k: { bias: 0, act: 'id' },
+			},
+			archs: {
+				k : {
+					x3: 1
+				},
+				y1 : {
+					x5: 1
+				}
+			}
+		}),
 	};
 
 	// The max delta direction for consideration
@@ -56,11 +70,10 @@ var Nevo = function(brains) {
 
 
 	// The creature color
-	this.color = [100,100,100];
+	this.color = [200,200,200];
 	this.highlight = null;
 
 	// Put me in the lattice
-	world.latticize(this)
 }
 
 Nevo.prototype.addToTree = function(tree) {
@@ -90,23 +103,24 @@ Nevo.prototype.eat = function(obj, force) {
 			return;
 		}
 	} else {
-		var poison = obj.color[0]/255
+		var poison = obj.poison
 		if(poison<.5) {
 			this.life+= obj.energy
 			this.eaten++;
 			if (this.fitness() > world.bestFitness) world.bestFitness = this.fitness();
 		} else {
-			this.life-= obj.energy
-			this.eaten--;
+			this.life-= obj.energy*3
+			this.eaten-= 3
 		}
-		world.remove(obj);
+		obj.randomize()
+		// world.remove(obj);
 
 	}
 	this.life = Math.min(this.life, this.maxLife);
 }
 
 
-Nevo.prototype.think = function(objects) {
+Nevo.prototype.think = function(each, really) {
 	var inputs = [];
 
 	// Relative linear acceleration [-1, +1]
@@ -122,37 +136,37 @@ Nevo.prototype.think = function(objects) {
 	var max_dist = 200
 	var view = []
 	// Filter objects not in view
-	for (var i = 0; i < objects.length; i++) {
-		var obj = objects[i]
-		if (obj == this) continue
-		if (obj.type != 'm') continue
+	each((obj, i) => {
+		if (obj == this) return
+		// if (obj.type != 'm') return
 
 		// Get distance
 		obj.tmp_dist = this.pos.dist(obj.pos)
 		// Filter by distance
-		if (obj.tmp_dist > max_dist) continue
+		if (obj.tmp_dist > max_dist) return
 		// Eat close meals
 		if (obj.type == 'm' && obj.tmp_dist < obj.radius+this.radius) {
 			this.eat(obj)
-			continue
+			return
 		}
+		if (!really) return
+
 		// Get angle
 		obj.tmp_angle = Angle.norm(Angle.drift(this.pos, obj.pos)-this.rot)
 		// Filter by angle
-		if (Math.abs(obj.tmp_angle) > this.viewRange) continue
+		if (Math.abs(obj.tmp_angle) > this.viewRange) return
 		// Save valid objects
 		var inserted = false
 		for (var j = 0; j < view.length; j++) {
 			if (obj.tmp_dist < view[j].tmp_dist) {
 				view.splice(j, 0, obj)
 				inserted = true
-				break
+				return
 			}
 		}
-		if (!inserted) {
-			view.push(obj)
-		}
-	}
+		view.push(obj)
+	})
+	if (!really) return
 
 	// console.log(this.pos, parseInt(this.rot/Math.PI*180))
 
@@ -165,26 +179,35 @@ Nevo.prototype.think = function(objects) {
 		if (obj) {
 			var dist = obj.tmp_dist
 			var angle = obj.tmp_angle
-
+			// if ((obj.poison-.5)*100 > 0)
+				// console.log(obj.poison)
 			// Object is valid
 			// console.log(i, parseInt(dist), parseInt(angle/Math.PI*180))
 			var out = [
+				obj.type == 'm' ? 1 : 0,
 				// Distance [0, 1] bigger is closer
 				1-dist/max_dist,
 				// Relative angle [-PI, +PI]
 				angle,
 
-				obj.color[0]/255
+				(obj.poison-.5)*2
 			]
 		}
-
+		// this.brains.object.reset()
+		// for (var j in out) {
+		// 	this.brains.object.set('x'+i, out[j])
+		// }
+		// var v = this.brains.object.val('y')
+		// inputs.push(v)
 		inputs = inputs.concat(out)
 	}
 
-	return this.brains.main.process(inputs)
+	for (var i in inputs) {
+		this.brains.main.set('x'+i, inputs[i])
+	}
 }
 
-Nevo.prototype.update = function(objects) {
+Nevo.prototype.update = function(each) {
 	this.age++;
 	//this.life-= Math.pow(1.001, this.age/3);
 	//this.life-= Math.sqrt(this.age)/30;
@@ -196,16 +219,13 @@ Nevo.prototype.update = function(objects) {
 	}
 
 	// Only elaborate inputs every X frames (for performance)
-	if (this.age%4 == 0) {
-		this.think(objects)
-	}
+	this.think(each, this.age%4 == 0)
 
-	var thought = this.brains.main.getOutputs()
 	// console.log(thought)
 
-	this.angAcc = this.maxAngAcc*thought[0];
+	this.angAcc = this.maxAngAcc*this.brains.main.val('y1')
 
-	this.linAcc = this.maxLinAcc*thought[1];
+	this.linAcc = this.maxLinAcc*this.brains.main.val('y2')
 	if(this.follow != null) {
 		var delta = this.drift(this.follow);
 		this.angAcc = delta;
@@ -226,7 +246,6 @@ Nevo.prototype.update = function(objects) {
 	this.pos.x-= this.linVel*Math.sin(this.rot);
 	this.pos.y+= this.linVel*Math.cos(this.rot);
 	// Update the lattice
-	world.latticize(this)
 
 	this.linAcc = this.angAcc = 0;
 	this.linVel*= .96;
@@ -328,15 +347,20 @@ Nevo.prototype.fitness = function() {
 Nevo.prototype.reproduce = function(partner) {
 	// The child brain is derived from the parent's ones
 	var brains = {}
-	for (var i in this.brains)
-		brains[i] = new Brain(this.brains[i], partner.brains[i], .07);
+	for (var i in this.brains) {
+		brains[i] = new Net(this.brains[i])
+		brains[i].mutate()
+		brains[i].mutate()
+		brains[i].mutate()
+		brains[i].mutate()
+	}
 
 	var child = new Nevo(brains);
 	child.color = this.color.slice();
 
-	var c = parseInt(Math.random()*3);
-	child.color[c] = parseInt(child.color[c]);
-	child.color[c]+= parseInt(Math.random()*130-65);
+	var c = Math.floor(Math.random()*3);
+	child.color[c] = Math.floor(child.color[c]);
+	child.color[c]+= Math.floor(Math.random()*130-65);
 	child.color[c] = Math.min(child.color[c], 255);
 	child.color[c] = Math.max(child.color[c], 20);
 	//console.log(child.highlight);
@@ -349,16 +373,16 @@ Nevo.prototype.reproduce = function(partner) {
 Nevo.prototype.setColor = function(c) {
 	this.color = c;
 	var agility = (255-this.color[0])/255*4;
-	this.maxLinVel*= agility;
-	this.maxLinAcc*= agility;
-	this.maxAngVel*= agility;
-	this.maxAngAcc*= agility;
+	// this.maxLinVel*= agility;
+	// this.maxLinAcc*= agility;
+	// this.maxAngVel*= agility;
+	// this.maxAngAcc*= agility;
 }
 
 Nevo.prototype.clone = function() {
 	var brains = {};
 	for (var i in this.brains)
-		brains[i] = this.brains[i].clone();
+		brains[i] = new Net(this.brains[i])
 	var child = new Nevo(brains);
 	child.setColor(this.color);
 	child.addToTree(this.children);

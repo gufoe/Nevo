@@ -7,22 +7,23 @@ var Meal = function(x, y, energy) {
 	this.fertile = true;
 	this.perlin = Math.random()*100000;
 	this.gen = 0;
-	//this.color = randColor();
-	var poison = 0//Math.max(0, Math.random()*1.9-.9);
-	if (poison > .7) this.energy*= (1+3*poison)
-	if (poison > 1) console.log(poison)
 
-	poison = parseInt(poison*255)
-	this.color = [poison,255-poison,255-poison];
+	this.poison = Math.max(0, 1-Math.random()*500);
+	this.setup()
+}
+
+Meal.prototype.setup = function() {
+	var poison = parseInt(this.poison*255)
+	this.color = [poison,255-poison,0];
 	this.radius = parseInt(Math.sqrt(this.energy/10));
-
-	// Put me in the lattice
-	world.latticize(this)
 }
 
 Meal.prototype.randomize = function() {
-	this.pos.x = Math.random()*world.w;
-	this.pos.y = Math.random()*world.h;
+	world.remove(this)
+
+	world.setTimeout(() => {
+		world.spawnMeal()
+	}, world.meal_timoeut)
 }
 
 Meal.prototype.draw = function() {
