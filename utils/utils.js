@@ -14,6 +14,9 @@ function randColor() {
     return parseInt(Math.random()*255)+','+parseInt(Math.random()*255)+','+parseInt(Math.random()*255)
 }
 
+var rnd = Math.random
+var pty = n => rnd() < n
+
 function collect() {
   var ret = {};
   var len = arguments.length;
@@ -39,4 +42,50 @@ Object.values = function (obj) {
 
 var clone = (obj) => {
     return JSON.parse(JSON.stringify(obj))
+}
+var keys = obj => Object.keys(obj)
+var values = obj => Object.values(obj)
+
+var range = (n, c) => { for (var i = 0; i < n; i++) c(i) }
+
+function shuffle(array) {
+    var currentIndex = array.length,
+        temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+    }
+
+    return array;
+}
+
+function pick(array) {
+    var i = Math.floor(Math.random() * array.length)
+    return array[i]
+}
+
+function rand(v) {
+    return Math.random() * v
+}
+
+function randInt(v) {
+    return parseInt(rand(v))
+}
+
+function clone(obj) {
+    return JSON.parse(JSON.stringify(obj))
+}
+
+var remove = function(array, el) {
+    var i = array.indexOf(el)
+    if (i >= 0) array.splice(i, 1)
 }

@@ -16,97 +16,66 @@ var Generation = function(population) {
 	 */
 	this.population = []
 	for(var i in population) {
-		population[i].gen = this;
-		this.population.push(population[i]);
+		this.push(population[i])
 	}
 
 }
 
-Generation.prototype.sort = function() {
+Generation.prototype.push = function(element) {
+	element.gen = this
+	this.population.push(element)
+}
 
-	// Sort the population by fitness
+// Sort the population by fitness
+Generation.prototype.sort = function() {
     this.population.sort(function(a, b) {
-        return b.fitness() - a.fitness();
+        return b.fitness() - a.fitness()
     })
 }
 
-Generation.prototype.update = function() {
-	this.sort();
-	this.total = 0;
-	for(var i in this.population)
-		this.total+= this.population[i].fitness();
-	this.average = this.total/this.population.length;
-	this.best = this.population[0].fitness();
+Generation.prototype.stats = function() {
+	var s = {
+		max: this.population[0].fitness(),
+		min: this.population[0].fitness(),
+		avg: this.population[0].fitness(),
+		variance: this.population[0].fitness(),
+	}
+	this.best = this.population[0]
+
+	for(var i = 0; i < this.population.length; i++) {
+		var f = this.population[i].fitness()
+		s.avg+= f
+		if (f > s.max) { this.best = this.population[i]; s.max = f }
+		else if (f < s.min) s.min = f
+	}
+	s.avg/= this.population.length
+
+	for(var i = 0; i < this.population.length; i++) {
+		var f = this.population[i].fitness()
+		s.qmean+= Math.pow(f - s.avg, 2)
+	}
+	s.variance/= this.population.length
+	return s
 }
 
-Generation.prototype.children = function() {
+Generation.prototype.next = function(count) {
+	count = count ? count : this.population.length
+	this.sort()
 	var lives = this.population
-
+	lives = lives.slice(0, lives.length)
     var kids = []
+
     // Clone the top 10%
-    // for (var i = 0; i < lives.length/10; i++)
-    //     kids.push(lives[i].kid(false))
+    for (var i = 0; i < count/10; i++)
+        kids.push(lives[i].reproduce(true))
+
     // Mutate the rest
-    while (kids.length < lives.length) {
-        var i = Math.floor(Math.random()*(lives.length - kids.length))
+    while (kids.length < count) {
+        var i = Math.floor(Math.random()*((kids.length+1)/count*lives.length)/4)
         kids.push(lives[i].reproduce())
     }
-    return kids
-	//
-	//
-	// var pool = [],
-	// 	keep = Math.min(this.population.length/10, this.population.length);
-	//
-	// // Fill the mating pool with 100 population
-	// for(var i in this.population) {
-	// 	var fitness = this.population[i].fitness();
-	//
-	// 	for(var j = 0; j < Math.pow(fitness+1, 1); j++)
-	// 		pool.push(this.population[i]);
-	// }
-	//
-	//
-	//
-	// var children = [];
-	//
-	// for(var i = 0; i < keep; i++) {
-	// 	var genius = this.population[i];
-	// 	children.push(genius.clone());
-	// }
-	//
-	// // Generate the new generation
-	// for(var i = 0; i < this.population.length-keep; i++) {
-	// 	var dad, mom;
-	// 	if(pool.length > 4) {
-	//
-	// 		dad = Math.random()*pool.length;
-	// 		mom = Math.random()*pool.length;
-	//
-	// 		// Select the parents from the pool
-	// 		dad = pool[Math.floor(dad)];
-	// 		mom = pool[Math.floor(mom)];
-	//
-	// 	} else {
-	//
-	// 		dad = Math.random()*this.population.length;
-	// 		mom = Math.random()*this.population.length;
-	//
-	// 		// Select the parents from the pool
-	// 		dad = this.population[Math.floor(dad)];
-	// 		mom = this.population[Math.floor(mom)];
-	//
-	// 	}
-	//
-	//
-	// 	// Create a new subject
-	// 	var child = dad.reproduce(mom);
-	//
-	// 	// Add the child to the new generation
-	// 	children.push(child);
-	// }
-	//
-	// // Return the new generation
-	// return children;
+
+    return new Generation(kids)
 
 }
 

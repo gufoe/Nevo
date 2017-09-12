@@ -3,29 +3,32 @@ var World = function() {
     this.meals = [];
     this.tree = [];
     this.age = 0;
-    this.w = 30000;
-    this.h = 2000;
+    this.w = Conf.world.w
+    this.h = Conf.world.h
     this.history = [];
     this.lattice = {};
     this.latticeGrid = {};
-    this.tileSize = 200;
     this.latticeElem = 0;
     this.bestFitness = 0;
-    this.default_meals = 30000;
-    this.meal_timoeut = 10000;
+    this.tileSize = Conf.world.tileSize
+    this.default_meals = Conf.world.default_meals
+    this.default_nevos = Conf.world.default_nevos
 }
 
 World.prototype.spawnMeal = function() {
     var parent = null
+    var i = 0
     do {
         parent = pick(world.meals)
-    } while (parent.lat.cell.length > 10)
-    var d = 800
+    } while ((!parent || parent.lat.cell.length > 10) && i++ < 20)
+    if (!parent) {
+        parent = { pos: new Vec(Math.random()*this.w, Math.random()*this.h)}
+    }
+    var d = 500
     var m = new Meal(
         parent.pos.x + ((Math.random()-.5)*2) * d,
         parent.pos.y + ((Math.random()-.5)*2) * d
     )
-    m.poison = Math.max(0, 1-Math.random()*500);
     m.setup()
 
 	world.latticize(m)
@@ -36,6 +39,9 @@ World.prototype.setup = function(n, m) {
     this.age = 0;
     this.bestFitness = 0;
     this.timeouts = {}
+    this.lattice = {};
+    this.latticeGrid = {};
+    this.latticeElem = 0;
 
     this.history = {
         nevos: [],
@@ -45,21 +51,29 @@ World.prototype.setup = function(n, m) {
     m = m ? m : world.default_meals
     m && this.setMeals(m)
 
-    if (typeof n == "array") {
+    if (typeof n == "object" && n.length > 0) {
         for (var i in n) {
-            console.log('push');
             n[i].addToTree(this.tree);
             this.nevos.push(n[i]);
+            this.latticize(n[i])
         }
     } else {
         n = n ? n : 0
-        for (var i = 0; i < n; i++) {
+        for (var i = 0; i < this.default_nevos; i++) {
             var nevo = new Nevo();
             nevo.addToTree(this.tree);
             this.latticize(nevo)
             this.nevos.push(nevo);
         }
     }
+
+    // this.nevos[0].pos.x = 500
+    // this.nevos[0].pos.y = 300
+    // world.latticize(this.nevos[0])
+    // this.meals[0].pos.x = 550
+    // this.meals[0].pos.y = 300
+    // world.latticize(this.meals[0])
+
 }
 World.prototype.setMeals = function(num) {
     while (world.meals.length < num) {
@@ -128,7 +142,7 @@ World.prototype.update = function() {
     var l = this.lattice;
     this.latticeGrid = {};
     var tot = 0;
-    for (var i in this.nevos) {
+    this.nevos.forEach((n, i) => {
 
         var n = this.nevos[i];
 
@@ -167,16 +181,18 @@ World.prototype.update = function() {
 
         this.latticize(n)
 
-    }
+    })
     tot /= this.nevos.length;
     if (this.age % 10000 == 0) {
         //console.log(tot);
     }
 
 
-    for (var i in this.nevos) {
-        if (this.nevos[i].life <= 0)
+    for (var i = 0; i < this.nevos.length; i++) {
+        if (this.nevos[i].life <= 0) {
             this.remove(this.nevos[i]);
+            i--
+        }
     }
 }
 
@@ -190,7 +206,7 @@ World.prototype.draw = function() {
         follow = null
     }
 
-    if (zoom < .3) {
+    if (zoom < .1) {
         var start = new Vec(
             parseInt(startDraw.x / this.tileSize),
             parseInt(startDraw.y / this.tileSize)
@@ -206,6 +222,7 @@ World.prototype.draw = function() {
                 }
                 for (var i in this.lattice[x][y]) {
                     var t = this.lattice[x][y][i]
+                    if (t.type == 'm') t.updateAge()
                     render.fillStyle = 'rgba('+t.color.join(',')+',.4)'
                     var dim = 100
                     render.fillRect(t.pos.x-(dim/2), t.pos.y-(dim/2), dim, dim)
@@ -235,14 +252,20 @@ World.prototype.draw = function() {
             for (var y = start.y; this.lattice[x] && y <= end.y; y++) {
                 // render.strokeStyle = 'rgba(200, 200, 0, .5)'
                 // render.strokeRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize)
-                for (var i in this.lattice[x][y]) {
-                    var n = this.lattice[x][y][i]
+                if (!this.lattice[x][y]) continue
+                this.lattice[x][y].forEach((n, i) => {
+                    // console.log(i, n)
+
+                    // var n = this.lattice[x][y][i]
                     var p = n.pos;
-                    color = [parseInt(n.color[0] / 3), parseInt(n.color[1] / 3), parseInt(n.color[2] / 3)].join()
+
+                    if (n.type == 'm') n.updateAge()
+
                     var rad = n.shadowRadius
                     if (rad) {
+                        var color = [n.color[0], n.color[1], n.color[2]].join()
                         var radgrad = render.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad);
-                        radgrad.addColorStop(0, 'rgba(' + color + ',.8)');
+                        radgrad.addColorStop(0, 'rgba(' + color + ',.2)');
                         radgrad.addColorStop(1, 'rgba(' + color + ',0)');
                         render.globalCompositeOperation = 'destination-over'
                         render.fillStyle = radgrad;
@@ -250,20 +273,11 @@ World.prototype.draw = function() {
                         render.globalCompositeOperation = 'source-over'
                     }
 
-                    if (!inWindow(p.x, p.y, n.radius)) continue
                     this.draws++;
-                    n.draw();
-                }
+                    n.draw()
+                })
             }
         }
-    }
-}
-
-World.prototype.setNevos = function(nevos) {
-    this.nevos = nevos;
-    for (var i in this.nevos) {
-        this.nevos[i].addToTree(this.tree);
-        this.latticize(this.nevos[i])
     }
 }
 
@@ -271,24 +285,17 @@ World.prototype.remove = function(obj, onlyLattice) {
     if (!onlyLattice) {
         if (obj.type == 'n') {
             var i = this.nevos.indexOf(obj);
-            if (i < 0) {
-                //console.log('not found', obj);
-            } else {
+            if (i >= 0) {
                 this.nevos.splice(i, 1);
             }
         } else {
             var i = this.meals.indexOf(obj);
-            if (i < 0) {
-                //console.log('not found', obj);
-            } else {
+            if (i >= 0) {
                 this.meals.splice(i, 1);
             }
         }
     }
     if (obj.lat) {
-        if (!this.lattice[obj.lat.x][obj.lat.y]) {
-            console.log(obj)
-        }
         var i = this.lattice[obj.lat.x][obj.lat.y].indexOf(obj);
         if (i >= 0) {
             this.lattice[obj.lat.x][obj.lat.y].splice(i, 1)
@@ -299,7 +306,7 @@ World.prototype.remove = function(obj, onlyLattice) {
 
 World.prototype.save = function() {
     if (!this.nevos.length) return
-    console.log(pick(this.nevos))
+    console.log('Saving some fishes. Mmmmmh.')
     var lives = [
         pick(this.nevos).brains,
         pick(this.nevos).brains,
@@ -317,6 +324,7 @@ World.prototype.restore = function() {
         for (var j in lives[i]) {
             console.log('restoring on', i, j, lives[i][j])
             this.nevos[i].brains[j] = new Net(lives[i][j])
+            this.nevos[i].orig_brains[j] = new Net(lives[i][j])
         }
     }
 }
