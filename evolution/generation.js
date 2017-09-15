@@ -67,22 +67,15 @@ Generation.prototype.next = function(count) {
 
     // Clone the top 10%
     for (var i = 0; i < count/10; i++)
-        kids.push(lives[i].reproduce(true))
+        kids.push(lives[i].reproduce())
 
     // Mutate the rest
     while (kids.length < count) {
         var i = Math.floor(Math.random()*((kids.length+1)/count*lives.length)/4)
-        kids.push(lives[i].reproduce())
+        var j = Math.floor(Math.random()*((kids.length+1)/count*lives.length)/4)
+        kids.push(lives[i].reproduce(lives[j]))
     }
 
     return new Generation(kids)
 
-}
-
-Generation.prototype.serialize = function() {
-	var brains = [];
-	for(var i in this.population) {
-		brains.push(this.population[i].brain.serialize());
-	}
-	return brains;
 }

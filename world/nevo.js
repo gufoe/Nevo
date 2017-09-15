@@ -1,9 +1,9 @@
-var Nevo = function(brains) {
-
+var Nevo = function(world, brains) {
+    this.world = world
     this.type = 'n';
     this.id = parseInt(Math.random() * 1000);
     // Descriptors
-    this.pos = new Vec(Math.random() * world.w, Math.random() * world.h);
+    this.pos = new Vec(Math.random() * this.world.w, Math.random() * this.world.h);
     this.rot = Math.random() * Math.PI * 2;
 
     this.age = 0;
@@ -22,11 +22,11 @@ var Nevo = function(brains) {
         main: brains ? brains.main : new Net(),
     };
 
-
-    this.orig_brains = {}
-    for (var i in this.brains) {
-        this.orig_brains[i] = new Net(this.brains[i])
-    }
+    // TODO
+    // this.orig_brains = {}
+    // for (var i in this.brains) {
+    //     this.orig_brains[i] = new Net(this.brains[i])
+    // }
 
     // The max delta direction for consideration
     this.viewRange = Conf.nevo.viewRange
@@ -69,7 +69,7 @@ var Nevo = function(brains) {
 Nevo.prototype.addToTree = function(tree) {
     tree.push({
         color: this.color.join(','),
-        time: world.age,
+        time: this.world.age,
         children: this.children
     });
 }
@@ -80,8 +80,8 @@ Nevo.prototype.eat = function(obj, force) {
         if (force) {
             this.life += obj.life;
             this.eaten++;
-            world.remove(obj);
-            if (this.fitness() > world.bestFitness) world.bestFitness = this.fitness();
+            this.world.remove(obj);
+            if (this.fitness() > this.world.bestFitness) this.world.bestFitness = this.fitness();
         } else {
             if (Math.abs(this.color[0] - obj.color[0]) < 50)
                 return;
@@ -97,19 +97,19 @@ Nevo.prototype.eat = function(obj, force) {
         if (poison < .5) {
             this.life += obj.energy
             this.eaten++;
-            if (this.fitness() > world.bestFitness) world.bestFitness = this.fitness();
+            if (this.fitness() > this.world.bestFitness) this.world.bestFitness = this.fitness();
         } else {
             this.life -= obj.energy * 3
             this.eaten -= 3
         }
-        world.remove(obj)
+        this.world.remove(obj)
 
-        world.setTimeout(() => {
-            world.spawnMeal()
+        this.world.setTimeout(() => {
+            this.world.spawnMeal()
         }, Conf.meal.timeout)
         if (Math.random() > .8) {
-            world.setTimeout(() => {
-                world.spawnMeal()
+            this.world.setTimeout(() => {
+                this.world.spawnMeal()
             }, Conf.meal.timeout*2)
         }
     }
@@ -130,7 +130,7 @@ Nevo.prototype.think = function(each, really) {
     inputs.push(this.angVel / this.maxAngVel);
 
     // Elaborate every point
-    var max_dist = Conf.world.tileSize
+    var max_dist = this.world.tileSize
     var view = this.view = really ? [] : this.view
     // Filter objects not in view
     each((obj) => {
@@ -234,19 +234,21 @@ Nevo.prototype.update = function(each) {
     this.angAcc = this.brains.main.val('ang_acc', 'sig')
     this.linAcc = this.brains.main.val('lin_acc', 'sig')
 
-    if ((this.age - 1) % Conf.nevo.ticks_per_tought == 0) {
-        if (this == world.nevos[0]) {
-            if (History.ang_acc.nevo != this) {
-                History.ang_acc.reset()
-                History.ang_acc.nevo = this
+    if (typeof History != 'undefined') {
+        if ((this.age - 1) % Conf.nevo.ticks_per_tought == 0) {
+            if (this == this.world.nevos[0]) {
+                if (History.ang_acc.nevo != this) {
+                    History.ang_acc.reset()
+                    History.ang_acc.nevo = this
+                }
+                if (History.lin_acc.nevo != this) {
+                    History.lin_acc.reset()
+                    History.lin_acc.nevo = this
+                }
+                History.ang_acc.push(this.angAcc)
+                History.lin_acc.push(this.linAcc)
+                // console.log(this.angAcc)
             }
-            if (History.lin_acc.nevo != this) {
-                History.lin_acc.reset()
-                History.lin_acc.nevo = this
-            }
-            History.ang_acc.push(this.angAcc)
-            History.lin_acc.push(this.linAcc)
-            // console.log(this.angAcc)
         }
     }
 
@@ -287,8 +289,8 @@ Nevo.prototype.update = function(each) {
         child.pos = this.pos.get();
         child.pos.x += Math.random() * 40 - 20;
         child.pos.y += Math.random() * 40 - 20;
-        world.nevos.push(child);
-        world.latticize(child);
+        this.world.nevos.push(child);
+        this.world.latticize(child);
         if (this.gen.population.length > 10000)
             this.gen.population.splice(0, 1);
         this.gen.population.push(child);
@@ -392,21 +394,20 @@ Nevo.prototype.drift = function(vec) {
 }
 
 Nevo.prototype.fitness = function() {
-    return (this.children.length/10+.1) * (this.generation/10+.1) * this.eaten
+    return this.age//(this.children.length/10+.1) * (this.generation/10+.1) * this.eaten
     //return Math.pow(this.eaten, 1.0);
 }
 
-Nevo.prototype.reproduce = function(mutate) {
+Nevo.prototype.reproduce = function(partner) {
     // The child brain is derived from the parent's ones
     var brains = {}
     for (var i in this.brains) {
         // console.log('cambio il', this.brains[i])
-        brains[i] = new Net(this.brains[i])
-        if (mutate === false) continue
+        brains[i] = partner ? this.brains[i].crossover(partner.brains[i]) : new Net(this.brains[i])
         brains[i].mutate(Math.ceil(len(brains[i].nodes)/10))
     }
 
-    var child = new Nevo(brains);
+    var child = new Nevo(this.world, brains);
     child.color = this.color.slice();
 
     var c = Math.floor(Math.random() * 3);
@@ -431,11 +432,23 @@ Nevo.prototype.setColor = function(c) {
 }
 
 Nevo.prototype.clone = function() {
-    var brains = {};
-    for (var i in this.brains)
-        brains[i] = new Net(this.brains[i])
-    var child = new Nevo(brains);
-    child.setColor(this.color);
-    child.addToTree(this.children);
-    return child;
+    return Nevo.generate(this)
+}
+
+Nevo.generate = (nevo, world) => {
+    var brains = {}
+    for (var i in nevo.brains)
+        brains[i] = new Net(nevo.brains[i])
+    var n = new Nevo(world || nevo.world, brains)
+    // console.log(n)
+    n.setColor(nevo.color)
+    return n
+}
+
+Nevo.prototype.pack = function() {
+    return {
+        brains: this.brains,
+        color: this.color,
+        fitness: this.fitness()
+    }
 }

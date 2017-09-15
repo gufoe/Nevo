@@ -1,4 +1,5 @@
-var Meal = function(x, y, energy) {
+var Meal = function(world, x, y, energy) {
+	this.world = world
 	this.type = 'm';
 	this.shadowRadius = 30
 	this.lat = null;
@@ -7,9 +8,8 @@ var Meal = function(x, y, energy) {
 	this.fertile = true;
 	this.perlin = Math.random()*100000;
 	this.gen = 0;
-
 	this.poison = Meal.poison()
-	this.created_at = world.age
+	this.created_at = this.world.age
 	this.age = 0
 	this.setup()
 }
@@ -23,7 +23,7 @@ Meal.prototype.setup = function() {
 }
 
 Meal.prototype.updateAge = function() {
-	this.age = world.age - this.created_at
+	this.age = this.world.age - this.created_at
 	this.color[2] = parseInt(255*600/(600+this.age))
 	return this.age
 }

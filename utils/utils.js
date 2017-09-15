@@ -89,3 +89,5 @@ var remove = function(array, el) {
     var i = array.indexOf(el)
     if (i >= 0) array.splice(i, 1)
 }
+
+function size (obj) { return keys(obj).length }

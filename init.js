@@ -47,11 +47,11 @@ drawables = [
 
 // Init
 Conf.world = {
-    w: 400,
-    h: 400,
-    tileSize: 200,
-    default_meals: 10,
-    default_nevos: 10,
+    w: 10000,
+    h: 10000,
+    tileSize: 300,
+    default_meals: 700,
+    default_nevos: 400,
 }
 Conf.meal = {
     energy: 200,
@@ -62,7 +62,7 @@ Conf.nevo = {
     max_life: 5000,
     default_life: 1000,
     viewRange: Math.PI / 1.7,
-    viewAccuracy: 180,
+    viewAccuracy: 40,
     maxLinVel: 10,
     maxLinAcc: 1,
     maxAngVel: (Math.PI / 16.0),
@@ -274,7 +274,7 @@ window.onload = function() {
 
     // Init the world
     world = new World();
-    world.setup(true);
+    world.setup();
     gen = new Generation(world.nevos)
 
 

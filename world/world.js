@@ -19,20 +19,20 @@ World.prototype.spawnMeal = function() {
     var parent = null
     var i = 0
     do {
-        parent = pick(world.meals)
+        parent = pick(this.meals)
     } while ((!parent || parent.lat.cell.length > 10) && i++ < 20)
     if (!parent) {
         parent = { pos: new Vec(Math.random()*this.w, Math.random()*this.h)}
     }
     var d = 500
-    var m = new Meal(
+    var m = new Meal(this,
         parent.pos.x + ((Math.random()-.5)*2) * d,
         parent.pos.y + ((Math.random()-.5)*2) * d
     )
     m.setup()
 
-	world.latticize(m)
-	world.meals.push(m)
+	this.latticize(m)
+	this.meals.push(m)
 }
 
 World.prototype.setup = function(n, m) {
@@ -48,19 +48,19 @@ World.prototype.setup = function(n, m) {
         meals: []
     };
     this.tree = [];
-    m = m ? m : world.default_meals
+    m = m ? m : this.default_meals
     m && this.setMeals(m)
 
     if (typeof n == "object" && n.length > 0) {
         for (var i in n) {
             n[i].addToTree(this.tree);
+            n[i].world = this
             this.nevos.push(n[i]);
             this.latticize(n[i])
         }
     } else {
-        n = n ? n : 0
         for (var i = 0; i < this.default_nevos; i++) {
-            var nevo = new Nevo();
+            var nevo = new Nevo(this);
             nevo.addToTree(this.tree);
             this.latticize(nevo)
             this.nevos.push(nevo);
@@ -69,19 +69,19 @@ World.prototype.setup = function(n, m) {
 
     // this.nevos[0].pos.x = 500
     // this.nevos[0].pos.y = 300
-    // world.latticize(this.nevos[0])
+    // this.latticize(this.nevos[0])
     // this.meals[0].pos.x = 550
     // this.meals[0].pos.y = 300
-    // world.latticize(this.meals[0])
+    // this.latticize(this.meals[0])
 
 }
 World.prototype.setMeals = function(num) {
-    while (world.meals.length < num) {
-        var m = new Meal(Math.random() * this.w, Math.random() * this.h)
+    while (this.meals.length < num) {
+        var m = new Meal(this, Math.random() * this.w, Math.random() * this.h)
         this.meals.push(m);
         this.latticize(m)
     }
-    while (world.meals.length > num) world.remove(world.meals[0])
+    while (this.meals.length > num) this.remove(this.meals[0])
 
 }
 World.prototype.latticize = function(obj) {
@@ -121,7 +121,7 @@ World.prototype.update = function() {
                 var dist = new Vec(4, 0);
                 dist.rotate(Math.PI * noise.simplex2(this.meals[i].perlin + this.meals[i].gen / 15.0, 0));
                 dist.mult(this.meals[i].radius);
-                var m = new Meal(this.meals[i].pos.x + dist.x, this.meals[i].pos.y + dist.y);
+                var m = new Meal(this, this.meals[i].pos.x + dist.x, this.meals[i].pos.y + dist.y);
                 m.gen = this.meals[i].gen + 1;
                 m.perlin = this.meals[i].perlin;
                 this.meals.push(m);
@@ -129,7 +129,7 @@ World.prototype.update = function() {
                 this.meals[i].fertile = false;
             }
 
-        var m = new Meal(Math.random() * this.w, Math.random() * this.h)
+        var m = new Meal(this, Math.random() * this.w, Math.random() * this.h)
         this.meals.push(m);
         m.latticize()
     }
