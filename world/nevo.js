@@ -284,7 +284,7 @@ Nevo.prototype.update = function(each) {
         child.pos.y += Math.random() * 40 - 20;
         this.world.nevos.push(child);
         this.world.latticize(child);
-        console.log(this)
+        //console.log(this)
         if (this.gen.population.length > 10000)
             this.gen.population.splice(0, 1);
         this.gen.population.push(child);
