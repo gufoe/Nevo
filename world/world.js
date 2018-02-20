@@ -307,26 +307,26 @@ World.prototype.remove = function(obj, onlyLattice) {
 World.prototype.save = function() {
     if (!this.nevos.length) return
     console.log('Saving some fishes. Mmmmmh.')
-    var lives = [
-        pick(this.nevos).brains,
-        pick(this.nevos).brains,
-        pick(this.nevos).brains,
-        pick(this.nevos).brains,
-    ]
+    var lives = []
+    this.nevos.forEach(n => lives.push(n.pack()))
     localStorage.setItem('lives', JSON.stringify(lives))
+    console.log('Saved', lives.length, 'nevos')
 }
 
 World.prototype.restore = function() {
     var lives = localStorage.getItem('lives')
     if (!lives) return
     lives = JSON.parse(lives)
-    for (var i in lives) {
-        for (var j in lives[i]) {
-            console.log('restoring on', i, j, lives[i][j])
-            this.nevos[i].brains[j] = new Net(lives[i][j])
-            this.nevos[i].orig_brains[j] = new Net(lives[i][j])
-        }
-    }
+    var g = this.nevos[0].gen
+    lives.forEach(n => {
+        n = Nevo.generate(n, this)
+        n.gen = g
+        this.latticize(n)
+        g.population.push(n)
+        this.nevos.push(n)
+
+    })
+    console.log('Restored', lives.length, 'nevos')
 }
 
 World.prototype.setTimeout = function(cb, ticks) {

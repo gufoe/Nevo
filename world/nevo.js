@@ -19,7 +19,11 @@ var Nevo = function(world, brains) {
         // object: new Net(),
 
         // This is used to decide what action to take based on each seen object and other parameters (velocity, health etc.)
-        main: brains ? brains.main : new Net(),
+        main: brains ? brains.main : new Net({
+            params: {
+                synapsesPerNode: 4
+            }
+        }),
     };
 
     // TODO
@@ -77,21 +81,10 @@ Nevo.prototype.addToTree = function(tree) {
 Nevo.prototype.eat = function(obj, force) {
     if (this.linVel < 0) return
     if (obj.type == 'n') {
-        if (force) {
-            this.life += obj.life;
-            this.eaten++;
-            this.world.remove(obj);
-            if (this.fitness() > this.world.bestFitness) this.world.bestFitness = this.fitness();
-        } else {
-            if (Math.abs(this.color[0] - obj.color[0]) < 50)
-                return;
-            if (this.color[0] > obj.color[0]) {
-                this.eat(obj, true);
-            } else {
-                obj.eat(this, true);
-            }
-            return;
-        }
+        this.life += obj.life/2;
+        this.eaten++;
+        this.world.remove(obj);
+        if (this.fitness() > this.world.bestFitness) this.world.bestFitness = this.fitness();
     } else {
         var poison = obj.poison
         if (poison < .5) {
@@ -134,21 +127,21 @@ Nevo.prototype.think = function(each, really) {
     var view = this.view = really ? [] : this.view
     // Filter objects not in view
     each((obj) => {
-        if (obj == this || obj.type != 'm') return
+        // if (obj == this || obj.type != 'm') return
+        if (obj == this) return
 
         // Get distance
         obj.tmp_dist = this.pos.dist(obj.pos)
         // Filter by distance
         if (obj.tmp_dist > max_dist) return
+
         // Eat close meals
-        if (obj.type == 'm' && obj.tmp_dist < obj.radius + this.radius) {
+        var angle = this.drift(obj.pos)
+        if (Math.abs(angle) < Math.PI/10 && obj.tmp_dist < obj.radius + this.radius) {
             this.eat(obj)
             return
         }
         if (!really) return
-
-        // Get angle
-        obj.tmp_angle = Angle.norm(Angle.drift(this.pos, obj.pos) - this.rot)
 
         // Filter by angle
 
@@ -188,8 +181,8 @@ Nevo.prototype.think = function(each, really) {
     for (var i = 0; i < this.viewAccuracy; i++) {
         var v = view[i]
         inputs = inputs.concat([
-            // view[i] && view[i].type == 'n' ? 1/(1+view[i].tmp_dist) : 0,
-            v && v.type == 'm' && v.poison < .5 ? (max_dist - v.tmp_dist) / max_dist : 0,
+            v && v.type == 'n' ? (max_dist - v.tmp_dist) / max_dist + .05 : 0,
+            v && v.type == 'm' && v.poison < .5 ? (max_dist - v.tmp_dist) / max_dist + .05 : 0,
             // v && v.type == 'm' && v.poison >= .5 ? (max_dist - v.tmp_dist) / max_dist : 0,
         ])
     }
@@ -291,6 +284,7 @@ Nevo.prototype.update = function(each) {
         child.pos.y += Math.random() * 40 - 20;
         this.world.nevos.push(child);
         this.world.latticize(child);
+        console.log(this)
         if (this.gen.population.length > 10000)
             this.gen.population.splice(0, 1);
         this.gen.population.push(child);
@@ -404,11 +398,12 @@ Nevo.prototype.reproduce = function(partner) {
     for (var i in this.brains) {
         // console.log('cambio il', this.brains[i])
         brains[i] = partner ? this.brains[i].crossover(partner.brains[i]) : new Net(this.brains[i])
-        brains[i].mutate(Math.ceil(len(brains[i].nodes)/10))
+        brains[i].mutate(2)
     }
 
     var child = new Nevo(this.world, brains);
     child.color = this.color.slice();
+    child.gen = this.gen
 
     var c = Math.floor(Math.random() * 3);
     child.color[c] = Math.floor(child.color[c]);

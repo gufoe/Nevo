@@ -49,9 +49,9 @@ drawables = [
 Conf.world = {
     w: 10000,
     h: 10000,
-    tileSize: 300,
+    tileSize: 400,
     default_meals: 700,
-    default_nevos: 400,
+    default_nevos: 200,
 }
 Conf.meal = {
     energy: 200,
@@ -60,9 +60,9 @@ Conf.meal = {
 }
 Conf.nevo = {
     max_life: 5000,
-    default_life: 1000,
+    default_life: 400,
     viewRange: Math.PI / 1.7,
-    viewAccuracy: 40,
+    viewAccuracy: 13,
     maxLinVel: 10,
     maxLinAcc: 1,
     maxAngVel: (Math.PI / 16.0),
@@ -204,14 +204,13 @@ var draw = function() {
     drawGraph("", world.history.nevos, canvas.width / 2 + 50, canvas.height - 10, canvas.width / 2 - 100, 100, '#07f', 0);
     drawGraph("", world.history.meals, canvas.width / 2 + 50, canvas.height - 10, canvas.width / 2 - 100, 100, '#0f0', 0);
 
-    History.age.draw(50, canvas.height - 120, canvas.width / 2 - 100, 100, '#0ff', 0)
-    History.size.draw(50, canvas.height - 120, canvas.width / 2 - 100, 100, '#f0f', 0)
-    History.avg.draw(50, canvas.height - 10, canvas.width / 2 - 100, 100, '#ff0', History.min.min, History.max.max)
-    History.min.draw(50, canvas.height - 10, canvas.width / 2 - 100, 100, '#f00', History.min.min, History.max.max)
-    History.max.draw(50, canvas.height - 10, canvas.width / 2 - 100, 100, '#0f0', History.min.min, History.max.max)
+    History.age.draw(50, canvas.height - 220, canvas.width / 2 - 100, 100, '#0ff', 0)
+    History.size.draw(50, canvas.height - 220, canvas.width / 2 - 100, 100, '#f0f', 0)
+    History.avg.draw(50, canvas.height - 10, canvas.width / 2 - 100, 200, '#ff0', History.min.min, History.max.max)
+    History.min.draw(50, canvas.height - 10, canvas.width / 2 - 100, 200, '#f00', History.min.min, History.max.max)
+    History.max.draw(50, canvas.height - 10, canvas.width / 2 - 100, 200, '#0f0', History.min.min, History.max.max)
 
     if (world.nevos[0] && world.nevos[0].inputs) {
-        // console.log(world.nevos[0].inputs)
         var stats = world.nevos[0].inputs.slice(0, 3)
         stats[0] = stats[0] * 2 - 1
         drawGraph('Input Stats', stats, 640, 130, 200, 100, '#ff0', -1, 1)
@@ -255,11 +254,11 @@ window.onload = function() {
     }
 
     canvas.onmousewheel = function(e) {
-        var factor = 1.2;
+        var factor = 1 + .05 * Math.abs(e.wheelDeltaY);
         if (e.wheelDeltaY > 0) {
-            zoomFinal = zoomFinal * factor;
+            zoomFinal = zoom * factor;
         } else {
-            zoomFinal = zoomFinal / factor;
+            zoomFinal = zoom / factor;
         }
         // clearInterval(zoomInt);
         // zoomInt = setInterval(function() {
@@ -311,12 +310,11 @@ var generate = function() {
     History.size.push(old_gen.population.length)
     History.age.push(world.age)
     History.avg.push(s.avg)
-    History.max.push(s.max)
+    History.max.push(s.top)
     History.min.push(s.min)
 
     world = new World()
     world.setup(gen.population)
-
 }
 
 var drawNet = () => {
@@ -324,56 +322,74 @@ var drawNet = () => {
         var v = weight
         v = Math.min(1, Math.max(v, -1))
         v01 = v/2+.5
-        var c = [1-v01, v01, v01, .2+Math.abs(v*.8)]
+        var c = [1-v01, v01, v01, .2+Math.abs(v*.8)*100]
         c[0] *= 255
         c[1] *= 255
         c[2] *= 255
         c[0] = Math.floor(c[0])
         c[1] = Math.floor(c[1])
         c[2] = Math.floor(c[2])
+        c[3] = Math.floor(c[3])
+        c[3]/= 100
         return 'rgba(' + c.join(',') + ')'
     }
     var nodes = []
     var edges = []
+    var data = { nodes, edges }
     var network = []
     var net = world.nevos[0].brains.main
-    for (var i in net.nodes) {
-        var n = net.nodes[i]
-        nodes.push({
-            id: i,
-            value: .1,
-            label: n.input || n.output ? i+'('+n.act+')' : null,
-            color: col(n.val),
-            font: {
-                color: '#0f6',
-                face: 'monospace',
+
+    var done = []
+    var level = []
+    net.outputs.forEach(id => level.push(net.nodes[id]))
+    var y = 0
+    while (level.length) {
+        var next = []
+        done = done.concat(level)
+        var x = 0
+        level.forEach(n => {
+
+            nodes.push({
+                id: n.id,
+                label: n.input || n.output ? n.id+' ('+n.act+')' : null,
+                color: col(n.bias),
+                x: x/10, y,
+                size: 10
+            })
+
+            for (var id in n.inputs) {
+                var input = net.nodes[id]
+                if (done.indexOf(input) < 0 && next.indexOf(input) < 0) {
+                    next.push(input)
+                }
+
+                edges.push({
+                    id: n.id+'-'+input.id,
+                    source: n.id,
+                    target: input.id,
+                    color: col(n.inputs[id]),
+                    value: n.inputs[id]// * input.val,
+                })
             }
+
+            x++
         })
 
-        console.log(n.inputs)
-        for (var j in n.inputs) {
-            edges.push({
-                color: col(n.inputs[j]),
-                from: i,
-                to: j,
-                value: n.inputs[j] * net.nodes[j].val,
-            })
-        }
+        level = next
+        y++
     }
 
-    // Instantiate our network object.
-    var data = {
-        nodes: nodes,
-        edges: edges
-    };
-    var options = {
-        nodes: {
-            shape: 'dot',
-        }
-    };
     var container = document.getElementById('graph');
-    window.network = new vis.Network(container, data, options);
+    container.innerHTML = ''
     container.style.display = 'block'
+    window.network = new sigma({
+        graph: data,
+        container: 'graph'
+    })
+    setTimeout(() => {
+        container.style.display = 'none'
+        window.network.kill()
+    }, 4000)
     // window.network.on('change', () => {
     //     setTimeout(() => container.style.display = 'none', 4000)
     // })
@@ -381,7 +397,6 @@ var drawNet = () => {
 
 window.onkeydown = function(e) {
     var key = String.fromCharCode(e.keyCode);
-
     switch (key) {
         case 'G':
             localStorage.setItem('tree', JSON.stringify(world.tree));
