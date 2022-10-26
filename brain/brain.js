@@ -271,28 +271,29 @@ Net.prototype.mutate = function() {
     var mrate = .02
 
     // Remove nodes
-    while (pty(mrate)) this.removeNode(pick(this.active))
+    // while (pty(mrate)) this.removeNode(pick(this.active))
 
     // Add nodes
-    while (pty(mrate)) this.newNode()
+    while (pty(mrate)) {
+        this.newNode()
 
-    this.active.forEach(id => {
-        var n = this.nodes[id]
+        this.active.forEach(id => {
+            var n = this.nodes[id]
 
-        // Mutate stuff
-        if (pty(mrate)) n.bias = Net.randWeight()
-        if (pty(mrate)) n.multiplier+= Net.randWeight()
-        if (pty(mrate)) n.act = Net.randFun()
+            // Mutate stuff
+            n.bias = Net.randWeight()
+            n.multiplier+= Net.randWeight()
+            n.act = Net.randFun()
 
-        // Add synapse
-        while (pty(mrate)) n.inputs[pick(keys(this.nodes))] = Net.randWeight()
+            // Add synapse
+            while (pty(mrate)) n.inputs[pick(keys(this.nodes))] = Net.randWeight()
 
-        // Mutate weights
-        for (var i in n.inputs) {
-            if (pty(mrate)) n.inputs[i] = Net.randWeight()
-        }
-    })
-
+            // Mutate weights
+            for (var i in n.inputs) {
+                n.inputs[i] = Net.randWeight()
+            }
+        })
+    }
     return this
 }
 

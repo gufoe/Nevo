@@ -177,11 +177,12 @@ World.prototype.update = function() {
             if (y - 1 in l[x])
                 foreach(l[x][y - 1]);
 
-        })
+        }, i)
 
         this.latticize(n)
 
     })
+
     tot /= this.nevos.length;
     if (this.age % 10000 == 0) {
         //console.log(tot);

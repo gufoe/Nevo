@@ -20,6 +20,7 @@ var canvas = false,
     autoFollow = true,
     drawHelp = true,
     DEBUG = false,
+    PLAYER_MODE = false,
     fastMode = false,
     chain = [],
     follow = null,
@@ -47,23 +48,23 @@ drawables = [
 
 // Init
 Conf.world = {
-    w: 10000,
-    h: 10000,
+    w: 20000,
+    h: 20000,
     tileSize: 400,
-    default_meals: 700,
-    default_nevos: 200,
+    default_meals: 8000,
+    default_nevos: 600,
 }
 Conf.meal = {
-    energy: 200,
+    energy: 500,
     timeout: 10,
-    poison: 0,
+    poison: .3,
 }
 Conf.nevo = {
     max_life: 5000,
-    default_life: 400,
+    default_life: 800,
     viewRange: Math.PI / 1.7,
-    viewAccuracy: 13,
-    maxLinVel: 10,
+    viewAccuracy: 101,
+    maxLinVel: 30,
     maxLinAcc: 1,
     maxAngVel: (Math.PI / 16.0),
     maxAngAcc: (Math.PI / 16.0) / 10,
@@ -78,7 +79,9 @@ Conf.nevo = {
 // Conf.nevo.max_life = 3000
 // Conf.nevo.maxLinVel = 10
 // Conf.nevo.viewAccuracy = 7
-
+window._keys = {};
+document.addEventListener('keydown', function(e){ console.log(e); window._keys[e.key] = true })
+document.addEventListener('keyup', function(e){ console.log(e); window._keys[e.key] = false })
 
 var update = function() {
     if (sync) {
@@ -193,6 +196,7 @@ var draw = function() {
         legend['[P] Paused     '] = paused ? 'on' : 'off';
         legend['[F] Fast mode  '] = fastMode ? 'on' : 'off';
         legend['[D] Debug mode '] = DEBUG ? 'on' : 'off';
+        legend['[L] Player mode '] = PLAYER_MODE ? 'on' : 'off';
         legend['[A] Auto follow'] = autoFollow ? 'on' : 'off';
     }
     var i = 1;
@@ -214,7 +218,9 @@ var draw = function() {
         var stats = world.nevos[0].inputs.slice(0, 3)
         stats[0] = stats[0] * 2 - 1
         drawGraph('Input Stats', stats, 640, 130, 200, 100, '#ff0', -1, 1)
-        drawGraph('Input View', world.nevos[0].inputs.slice(3), 860, 130, 200, 100, '#ff0', 0, 1)
+        // drawGraph('Input View', world.nevos[0].inputs.slice(3), 860, 130, 200, 100, '#ff0', 0, 1)
+        drawGraph('Input Meal', world.nevos[0].inputs.slice(3).filter((x,i)=>i%2), 860, 130, 200, 100, '#0ff', 0, 1)
+        drawGraph('Input Fish', world.nevos[0].inputs.slice(3).filter((x,i)=>1-i%2), 860, 260, 200, 100, '#0f0', 0, 1)
     }
 
     History.lin_acc.draw(200, 80, 200, 45, '#cf0', -1, 1)
@@ -405,6 +411,9 @@ window.onkeydown = function(e) {
             break;
         case 'D':
             DEBUG = !DEBUG;
+            break;
+        case 'L':
+            PLAYER_MODE = !PLAYER_MODE;
             break;
         case 'F':
             fastMode = !fastMode;

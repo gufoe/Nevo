@@ -21,7 +21,7 @@ var Nevo = function(world, brains) {
         // This is used to decide what action to take based on each seen object and other parameters (velocity, health etc.)
         main: brains ? brains.main : new Net({
             params: {
-                synapsesPerNode: 4
+                synapsesPerNode: 40
             }
         }),
     };
@@ -137,7 +137,7 @@ Nevo.prototype.think = function(each, really) {
 
         // Eat close meals
         var angle = this.drift(obj.pos)
-        if (Math.abs(angle) < Math.PI/10 && obj.tmp_dist < obj.radius + this.radius) {
+        if (Math.abs(angle) < Math.PI/4 && obj.tmp_dist < obj.radius + this.radius) {
             this.eat(obj)
             return
         }
@@ -192,7 +192,7 @@ Nevo.prototype.think = function(each, really) {
     inputs.forEach((v, i) => this.brains.main.set('x' + i, v))
 }
 
-Nevo.prototype.update = function(each) {
+Nevo.prototype.update = function(each, index) {
     this.age++;
     //this.life-= Math.pow(1.001, this.age/3);
     //this.life-= Math.sqrt(this.age)/30;
@@ -200,7 +200,7 @@ Nevo.prototype.update = function(each) {
     this.maxLinVel *= .9997
     //this.life-= 1;
 
-    if (this.age % 6 == 0) {
+    if (this.age % 20 == 0) {
         this.radius += .05
     }
     if (this.age % Conf.mutation_ticks == 0) {
@@ -212,7 +212,6 @@ Nevo.prototype.update = function(each) {
     // Only elaborate inputs every X frames (for performance)
 
 
-    // console.log(thought)
     if ((this.age - 1) % Conf.nevo.ticks_per_tought == 0) {
         this.think(each, true)
         this.brains.main.tick()
@@ -220,12 +219,23 @@ Nevo.prototype.update = function(each) {
         this.think(each, true)
     }
 
+    if (PLAYER_MODE && index == 0) {
+        this.linAcc = 0
+        this.angAcc = 0
+        if (window._keys.ArrowUp) this.linAcc = 1
+        if (window._keys.ArrowDown) this.linAcc = -1
+        if (window._keys.ArrowLeft) this.angAcc = -3
+        if (window._keys.ArrowRight) this.angAcc = 3
+        this.life = 5000
+    } else {
+        this.angAcc = this.brains.main.val('ang_acc', 'sig')
+        this.linAcc = this.brains.main.val('lin_acc', 'sig')
+    }
+
     // this.linAcc = this.angAcc = 0;
     this.linVel *= .96;
-    this.angVel *= .96;
+    this.angVel *= .86;
 
-    this.angAcc = this.brains.main.val('ang_acc', 'sig')
-    this.linAcc = this.brains.main.val('lin_acc', 'sig')
 
     if (typeof History != 'undefined') {
         if ((this.age - 1) % Conf.nevo.ticks_per_tought == 0) {
